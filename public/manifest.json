@@ -1,0 +1,10 @@
+{
+  "name": "Spotter",
+  "short_name": "Spotter",
+  "description": "Approved gym records, check-in, and balance",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0044e3",
+  "icons": []
+}

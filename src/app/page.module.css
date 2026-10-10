@@ -1,0 +1,187 @@
+.screenContainer {
+  height: var(--layout-viewport-height);
+  max-height: var(--layout-viewport-height);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+.statusCard {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--effect-soft-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.statusHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tierBadge {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  border-radius: var(--radius-full);
+  padding-left: var(--spacing-sm);
+  padding-right: var(--spacing-sm);
+  padding-top: var(--spacing-xxs);
+  padding-bottom: var(--spacing-xxs);
+  font-family: var(--typography-label-small-font-family);
+  font-size: var(--typography-label-small-font-size);
+  font-weight: var(--typography-label-small-font-weight);
+}
+
+.asOfText {
+  color: var(--color-outline);
+  font-family: var(--typography-label-small-font-family);
+  font-size: var(--typography-label-small-font-size);
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.metricCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.metricLabel {
+  color: var(--color-on-surface-variant);
+  font-family: var(--typography-label-medium-font-family);
+  font-size: var(--typography-label-medium-font-size);
+  font-weight: var(--typography-label-medium-font-weight);
+}
+
+.metricValue {
+  color: var(--color-on-surface);
+  font-family: var(--typography-title-medium-font-family);
+  font-size: var(--typography-title-medium-font-size);
+  font-weight: var(--typography-title-medium-font-weight);
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.primaryAction {
+  height: var(--layout-button-height);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--typography-label-large-font-family);
+  font-size: var(--typography-label-large-font-size);
+  font-weight: var(--typography-label-large-font-weight);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.secondaryAction {
+  height: var(--layout-button-height);
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--typography-label-large-font-family);
+  font-size: var(--typography-label-large-font-size);
+  font-weight: var(--typography-label-large-font-weight);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.questionsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-height: 0;
+}
+
+.blockTitle {
+  color: var(--color-on-surface-variant);
+  font-family: var(--typography-label-medium-font-family);
+  font-size: var(--typography-label-medium-font-size);
+  font-weight: var(--typography-label-medium-font-weight);
+}
+
+.chipsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+  overflow-y: auto;
+}
+
+.questionChip {
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  border: none;
+  border-radius: var(--radius-full);
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  padding-top: var(--spacing-xs);
+  padding-bottom: var(--spacing-xs);
+  font-family: var(--typography-label-medium-font-family);
+  font-size: var(--typography-label-medium-font-size);
+  font-weight: var(--typography-label-medium-font-weight);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.textInput {
+  height: var(--layout-input-height);
+  flex: 1;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  border-radius: var(--radius-md);
+  border: none;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  font-family: var(--typography-body-large-font-family);
+  font-size: var(--typography-body-large-font-size);
+  outline: none;
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.submitBtn {
+  height: var(--layout-button-height);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  border: none;
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
+  font-family: var(--typography-label-large-font-family);
+  font-size: var(--typography-label-large-font-size);
+  font-weight: var(--typography-label-large-font-weight);
+  cursor: pointer;
+  box-shadow: var(--effect-soft-shadow);
+}

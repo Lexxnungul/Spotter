@@ -1,0 +1,376 @@
+// schema.prisma
+// Postgres extension pgvector must be enabled once per database:
+// CREATE EXTENSION IF NOT EXISTS vector;
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+enum Tier {
+  BASIC
+  PREMIUM
+}
+
+enum MemberStatus {
+  ACTIVE
+  PAUSED
+  LEFT
+}
+
+enum CardType {
+  TIMETABLE
+  PRICES
+  RULES
+  ACCESS_HOURS
+  GUEST_POLICY
+  PAUSE_CANCELLATION
+  TRAINING_PLAN
+  TRAINER_GUIDANCE
+}
+
+enum CardStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  UNPUBLISHED
+}
+
+enum EmbedStatus {
+  OK
+  PENDING
+  FAILED
+}
+
+enum AttendanceSource {
+  APP
+  MANUAL
+}
+
+enum PaymentPurpose {
+  RENEWAL
+  BALANCE
+}
+
+enum PaymentMethod {
+  GATEWAY
+  CASH
+  TRANSFER
+  POS
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+enum ExpirySource {
+  GATEWAY
+  DESK
+  OWNER_CORRECTION
+}
+
+enum QuestionLabel {
+  SHARED
+  PRIVATE_ATTENDANCE
+  PRIVATE_BALANCE
+  PRIVATE_PROFILE
+  NEVER_ANSWER
+  UNKNOWN
+}
+
+enum HandoffReason {
+  SILENT
+  NEVER_ANSWER
+  MEMBER_REQUESTED
+}
+
+enum WrongReportSource {
+  MEMBER
+  OWNER_SAMPLE
+}
+
+// Private model. Every read of this model must include a memberId filter.
+// Never searched across members. Never embedded.
+model Member {
+  id                 String        @id @default(cuid())
+  fullName           String
+  phone              String        @unique
+  email              String?
+  tier               Tier
+  status             MemberStatus  @default(ACTIVE)
+  expiryDate         DateTime
+  openingBalanceKobo Int           @default(0)
+  createdAt          DateTime      @default(now())
+
+  devices            Device[]
+  attendance         Attendance[]
+  payments           Payment[]
+  charges            Charge[]
+  expiryChanges      ExpiryChange[]
+  questionLogs       QuestionLog[]
+  handoffs           Handoff[]
+  wrongReports       WrongAnswerReport[]
+  consent            ConsentRecord?
+  activationCodes    ActivationCode[]
+
+  @@index([status])
+}
+
+// Private model. One row per linked phone. Fetched by memberId only.
+model Device {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    Member    @relation(fields: [memberId], references: [id])
+  tokenHash String    @unique
+  linkedAt  DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([memberId])
+}
+
+// Private model. Single use, tied to one member, fetched by memberId only.
+model ActivationCode {
+  id          String    @id @default(cuid())
+  memberId    String
+  member      Member    @relation(fields: [memberId], references: [id])
+  codeHash    String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  usedAt      DateTime?
+  failedTries Int       @default(0)
+
+  @@index([memberId])
+}
+
+// Private model. Fetched by memberId only.
+model ConsentRecord {
+  id          String   @id @default(cuid())
+  memberId    String   @unique
+  member      Member   @relation(fields: [memberId], references: [id])
+  consentedAt DateTime @default(now())
+}
+
+model StaffAccount {
+  id               String         @id @default(cuid())
+  fullName         String
+  email            String         @unique
+  passwordHash     String
+  role             Role
+  whatsapp         String
+  createdAt        DateTime       @default(now())
+
+  duties           Duty[]
+  cardVersions     CardVersion[]  @relation("author")
+  approvals        CardVersion[]  @relation("approver")
+  paymentEntries   Payment[]      @relation("typist")
+  manualAttendance Attendance[]   @relation("typist")
+}
+
+// Not private. One row per shift start.
+model Duty {
+  id        String       @id @default(cuid())
+  staffId   String
+  staff     StaffAccount @relation(fields: [staffId], references: [id])
+  startedAt DateTime     @default(now())
+
+  @@index([startedAt])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+// Shared, not private. Gated by tier.
+model Card {
+  id        String        @id @default(cuid())
+  type      CardType
+  tier      Tier
+  title     String
+  createdAt DateTime      @default(now())
+
+  versions  CardVersion[]
+
+  @@index([type])
+}
+
+model CardVersion {
+  id             String        @id @default(cuid())
+  cardId         String
+  card           Card          @relation(fields: [cardId], references: [id])
+  body           String
+  status         CardStatus    @default(SUBMITTED)
+  authorId       String
+  author         StaffAccount  @relation("author", fields: [authorId], references: [id])
+  approverId     String?
+  approver       StaffAccount? @relation("approver", fields: [approverId], references: [id])
+  rejectReason   String?
+  confirmedAt    DateTime?
+  reconfirmDueAt DateTime?
+  submittedAt    DateTime      @default(now())
+  approvedAt     DateTime?
+  unpublishedAt  DateTime?
+
+  embedding      CardEmbedding?
+
+  @@index([cardId, status])
+}
+
+// Shared, not private. Only approved shared cards are embedded.
+// Private records never enter this table.
+model CardEmbedding {
+  id            String                     @id @default(cuid())
+  cardVersionId String                     @unique
+  cardVersion   CardVersion                @relation(fields: [cardVersionId], references: [id])
+  vector        Unsupported("vector(768)")
+  status        EmbedStatus                @default(PENDING)
+  updatedAt     DateTime                   @updatedAt
+}
+
+// Private model. Fetched by memberId only. Never searched across members.
+model Attendance {
+  id        String           @id @default(cuid())
+  memberId  String
+  member    Member           @relation(fields: [memberId], references: [id])
+  date      DateTime         @db.Date
+  source    AttendanceSource
+  typistId  String?
+  typist    StaffAccount?    @relation("typist", fields: [typistId], references: [id])
+  createdAt DateTime         @default(now())
+
+  @@unique([memberId, date])
+  @@index([memberId])
+}
+
+model DailyCode {
+  date     DateTime @id @db.Date
+  codeHash String
+  setById  String
+}
+
+// Private model. Fetched by memberId only.
+model Charge {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id])
+  amountKobo  Int
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  @@index([memberId])
+}
+
+// Private model. Fetched by memberId only.
+model Payment {
+  id             String         @id @default(cuid())
+  memberId       String
+  member         Member         @relation(fields: [memberId], references: [id])
+  purpose        PaymentPurpose
+  method         PaymentMethod
+  amountKobo     Int
+  status         PaymentStatus  @default(INITIATED)
+  idempotencyKey String         @unique
+  gatewayRef     String?        @unique
+  typistId       String?
+  typist         StaffAccount?  @relation("typist", fields: [typistId], references: [id])
+  reversalOfId   String?
+  createdAt      DateTime       @default(now())
+  confirmedAt    DateTime?
+
+  attempts       PaymentAttempt[]
+
+  @@index([memberId])
+}
+
+// Private model. Fetched by memberId only through Payment.
+model PaymentAttempt {
+  id        String        @id @default(cuid())
+  paymentId String
+  payment   Payment       @relation(fields: [paymentId], references: [id])
+  status    PaymentStatus
+  detail    String?
+  at        DateTime      @default(now())
+
+  @@index([paymentId])
+}
+
+// Private model. Fetched by memberId only.
+model ExpiryChange {
+  id        String       @id @default(cuid())
+  memberId  String
+  member    Member       @relation(fields: [memberId], references: [id])
+  oldExpiry DateTime
+  newExpiry DateTime
+  source    ExpirySource
+  actorId   String?
+  createdAt DateTime     @default(now())
+
+  @@index([memberId])
+}
+
+// Private model. Fetched by memberId only.
+model QuestionLog {
+  id            String        @id @default(cuid())
+  memberId      String
+  member        Member        @relation(fields: [memberId], references: [id])
+  tierAtTime    Tier
+  questionText  String
+  label         QuestionLabel
+  found         Boolean
+  cardVersionId String?
+  createdAt     DateTime      @default(now())
+
+  @@index([memberId])
+  @@index([createdAt])
+}
+
+// Private model. Fetched by memberId only.
+model Handoff {
+  id        String        @id @default(cuid())
+  memberId  String
+  member    Member        @relation(fields: [memberId], references: [id])
+  reason    HandoffReason
+  staffName String
+  createdAt DateTime      @default(now())
+
+  @@index([memberId])
+}
+
+// Private model. Fetched by memberId only.
+model WrongAnswerReport {
+  id            String            @id @default(cuid())
+  memberId      String?
+  member        Member?           @relation(fields: [memberId], references: [id])
+  questionLogId String?
+  source        WrongReportSource
+  answerShown   String
+  recordShown   String
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  @@index([memberId])
+}
+
+// Staff & system model (PRD v0.2). Desk question category logs.
+model DeskQuestionLog {
+  id        String   @id @default(cuid())
+  category  String
+  staffId   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
