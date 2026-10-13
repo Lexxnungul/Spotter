@@ -1,0 +1,367 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 23, 76, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: var(--z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md, 12px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 68, 227, 0.2);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 25px 60px rgba(0, 39, 128, 0.18), var(--effect-medium-shadow);
+  color: var(--color-on-background, #00174c);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modalHeader {
+  padding: var(--spacing-lg, 16px) var(--spacing-xl, 20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 68, 227, 0.12);
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+}
+
+.logoIcon {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--color-primary, #0044e3) 0%, #2d6cff 100%);
+  border-radius: var(--radius-md, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 68, 227, 0.35);
+}
+
+.modalTitle {
+  font-family: var(--typography-title-medium-font-family, var(--font-dm-sans, sans-serif));
+  font-size: 18px;
+  font-weight: 600;
+  color: #00174c;
+}
+
+.closeButton {
+  background: #ebf1ff;
+  border: 1px solid rgba(0, 68, 227, 0.18);
+  color: #4e5e82;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full, 9999px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  background: #ebf1ff;
+  color: #00174c;
+}
+
+.tabBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #ebf1ff;
+  padding: var(--spacing-xs, 4px);
+  margin: var(--spacing-md, 12px) var(--spacing-xl, 20px) 0;
+  border-radius: var(--radius-md, 8px);
+  gap: 2px;
+  border: 1px solid rgba(0, 68, 227, 0.14);
+}
+
+.tabButton {
+  background: transparent;
+  border: none;
+  color: #4e5e82;
+  padding: var(--spacing-sm, 8px) var(--spacing-xs, 4px);
+  font-family: var(--typography-label-medium-font-family, var(--font-inter, sans-serif));
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tabButton:hover {
+  color: #00174c;
+}
+
+.activeTabButton {
+  background: linear-gradient(135deg, var(--color-primary, #0044e3) 0%, #1e56d9 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 68, 227, 0.35);
+}
+
+.modalBody {
+  padding: var(--spacing-xl, 20px);
+}
+
+/* PIN Keypad Screen */
+.pinContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md, 12px);
+}
+
+.pinInstruction {
+  font-size: 13px;
+  color: #283043;
+  text-align: center;
+}
+
+.pinDotsRow {
+  display: flex;
+  gap: var(--spacing-md, 12px);
+  margin: var(--spacing-sm, 8px) 0;
+}
+
+.pinDot {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full, 9999px);
+  border: 2px solid rgba(0, 68, 227, 0.35);
+  background: #f7f9ff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pinDotFilled {
+  background: linear-gradient(135deg, var(--color-primary, #0044e3) 0%, #2d6cff 100%);
+  border-color: #0044e3;
+  box-shadow: 0 0 10px rgba(0, 68, 227, 0.5);
+  transform: scale(1.1);
+}
+
+.keypadGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm, 8px);
+  width: 100%;
+  max-width: 280px;
+}
+
+.keypadKey {
+  height: 52px;
+  background: #f7f9ff;
+  border: 1px solid rgba(0, 68, 227, 0.15);
+  border-radius: var(--radius-md, 8px);
+  color: #00174c;
+  font-size: 20px;
+  font-weight: 600;
+  font-family: var(--typography-title-medium-font-family, var(--font-dm-sans, sans-serif));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.keypadKey:hover {
+  background: #ebf1ff;
+  border-color: #0044e3;
+}
+
+.keypadKey:active {
+  transform: scale(0.95);
+  background: var(--color-primary, #0044e3);
+  color: #ffffff;
+}
+
+.keypadKeySpecial {
+  font-size: 13px;
+  color: #4e5e82;
+  font-weight: 500;
+}
+
+/* Forms */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  margin-bottom: var(--spacing-md, 12px);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #283043;
+  display: flex;
+  justify-content: space-between;
+}
+
+.input {
+  height: var(--layout-input-height, 48px);
+  background: #ffffff;
+  border: 1px solid rgba(0, 68, 227, 0.22);
+  border-radius: var(--radius-md, 8px);
+  padding: 0 var(--spacing-md, 12px);
+  color: #00174c;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--color-primary, #0044e3);
+  box-shadow: 0 0 0 2px rgba(0, 68, 227, 0.2);
+  background: #ffffff;
+}
+
+.input::placeholder {
+  color: #8291b4;
+}
+
+.codeInput {
+  font-size: 22px;
+  letter-spacing: 6px;
+  text-align: center;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.consentCard {
+  background: #ebf1ff;
+  border: 1px solid rgba(0, 68, 227, 0.2);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-md, 12px);
+  margin-bottom: var(--spacing-md, 12px);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #283043;
+}
+
+.consentRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm, 8px);
+  margin-top: var(--spacing-xs, 4px);
+  cursor: pointer;
+}
+
+.checkbox {
+  margin-top: 2px;
+  accent-color: var(--color-primary, #0044e3);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.submitButton {
+  width: 100%;
+  height: var(--layout-button-height, 48px);
+  background: linear-gradient(135deg, var(--color-primary, #0044e3) 0%, #2d6cff 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--typography-label-large-font-family, var(--font-dm-sans, sans-serif));
+  font-size: var(--typography-label-large-font-size, 14px);
+  font-weight: var(--typography-label-large-font-weight, 500);
+  line-height: var(--typography-label-large-line-height, 21px);
+  letter-spacing: var(--typography-label-large-letter-spacing, -0.119px);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 68, 227, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 8px);
+  margin-top: var(--spacing-sm, 8px);
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 68, 227, 0.5);
+  filter: brightness(1.08);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorBanner {
+  background: #ffedea;
+  border: 1px solid rgba(239, 0, 9, 0.3);
+  color: #930003;
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: var(--spacing-md, 12px);
+  text-align: center;
+}
+
+.demoHelper {
+  margin-top: var(--spacing-md, 12px);
+  padding-top: var(--spacing-sm, 8px);
+  border-top: 1px dashed rgba(0, 68, 227, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.demoHelperText {
+  font-size: 11px;
+  color: #4e5e82;
+}
+
+.demoFillLink {
+  background: none;
+  border: none;
+  color: #0037b8;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.demoFillLink:hover {
+  color: #002780;
+}

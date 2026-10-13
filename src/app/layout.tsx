@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Inter } from 'next/font/google';
 import './globals.css';
+import AppProviders from '../components/providers/AppProviders';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -15,9 +16,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Spotter',
-  description: 'Approved gym records, check-in, and member balance',
+  title: {
+    default: 'Spotter | Approved Gym Records',
+    template: '%s | Spotter',
+  },
+  description: 'Approved gym member records',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export const viewport: Viewport = {
@@ -36,7 +45,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${inter.variable}`}>
       <body>
-        <main>{children}</main>
+        <AppProviders>
+          <main>{children}</main>
+        </AppProviders>
       </body>
     </html>
   );

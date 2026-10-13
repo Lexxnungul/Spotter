@@ -1954,7 +1954,7 @@
     "surface": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral98}",
+      "value": "{primitives.color palettes.primary.primary100}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -1969,7 +1969,7 @@
     "surface variant": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral variant.neutralvariant95}",
+      "value": "{primitives.color palettes.primary.primary95}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -1984,7 +1984,7 @@
     "on surface": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral10}",
+      "value": "{primitives.color palettes.primary.primary10}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -1999,7 +1999,7 @@
     "on surface variant": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral variant.neutralvariant30}",
+      "value": "{primitives.color palettes.primary.primary30}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2014,7 +2014,7 @@
     "surface container highest": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral90}",
+      "value": "{primitives.color palettes.primary.primary80}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2029,7 +2029,7 @@
     "surface container high": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral92}",
+      "value": "{primitives.color palettes.primary.primary90}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2044,7 +2044,7 @@
     "surface container low": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral96}",
+      "value": "{primitives.color palettes.primary.primary98}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2059,7 +2059,7 @@
     "surface container": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral94}",
+      "value": "{primitives.color palettes.primary.primary95}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2073,7 +2073,7 @@
     },
     "surface container lowest": {
       "type": "color",
-      "value": "#ffffffff",
+      "value": "{primitives.color palettes.primary.primary100}",
       "blendMode": "normal",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
@@ -2149,7 +2149,7 @@
     "outline": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral variant.neutralvariant80}",
+      "value": "{primitives.color palettes.primary.primary80}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2164,7 +2164,7 @@
     "outline variant": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral variant.neutralvariant87}",
+      "value": "{primitives.color palettes.primary.primary90}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2374,7 +2374,7 @@
     "background": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral99}",
+      "value": "{primitives.color palettes.primary.primary100}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",
@@ -2389,7 +2389,7 @@
     "on background": {
       "description": "",
       "type": "color",
-      "value": "{primitives.color palettes.neutral.neutral10}",
+      "value": "{primitives.color palettes.primary.primary10}",
       "extensions": {
         "org.lukasoppermann.figmaDesignTokens": {
           "collection": "Color Roles",

@@ -1,5 +1,10 @@
 @import '../tokens.css';
 
+:root {
+  --font-family-display: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-body: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -7,28 +12,41 @@
 }
 
 html, body {
-  height: var(--layout-viewport-height);
-  max-height: var(--layout-viewport-height);
-  overflow: hidden;
+  min-height: 100vh;
+  height: 100dvh;
   margin: 0;
   padding: 0;
-  background-color: var(--color-background);
-  color: var(--color-on-background);
-  font-family: var(--typography-body-large-font-family);
-  font-size: var(--typography-body-large-font-size);
-  line-height: var(--typography-body-large-line-height);
+  background-color: var(--color-background, #ffffff);
+  color: var(--color-on-background, #00174c);
+  font-family: var(--font-family-body);
+  font-size: var(--typography-body-large-font-size, 16px);
+  line-height: var(--typography-body-large-line-height, 1.5);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 main {
-  height: var(--layout-viewport-height);
-  max-height: var(--layout-viewport-height);
-  overflow: hidden;
+  min-height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: var(--layout-max-width);
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  font-family: var(--typography-label-large-font-family, var(--font-family-display, 'DM Sans', sans-serif));
+  font-size: var(--typography-label-large-font-size, 14px);
+  font-weight: var(--typography-label-large-font-weight, 500);
+  line-height: var(--typography-label-large-line-height, 21px);
+  letter-spacing: var(--typography-label-large-letter-spacing, -0.119px);
+  text-decoration: var(--typography-label-large-text-decoration, none);
+  font-style: var(--typography-label-large-font-style, normal);
+}
+
+input, select, textarea {
+  font-family: inherit;
 }

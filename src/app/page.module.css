@@ -87,6 +87,8 @@
   font-family: var(--typography-label-large-font-family);
   font-size: var(--typography-label-large-font-size);
   font-weight: var(--typography-label-large-font-weight);
+  line-height: var(--typography-label-large-line-height);
+  letter-spacing: var(--typography-label-large-letter-spacing);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -103,6 +105,8 @@
   font-family: var(--typography-label-large-font-family);
   font-size: var(--typography-label-large-font-size);
   font-weight: var(--typography-label-large-font-weight);
+  line-height: var(--typography-label-large-line-height);
+  letter-spacing: var(--typography-label-large-letter-spacing);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -182,6 +186,8 @@
   font-family: var(--typography-label-large-font-family);
   font-size: var(--typography-label-large-font-size);
   font-weight: var(--typography-label-large-font-weight);
+  line-height: var(--typography-label-large-line-height);
+  letter-spacing: var(--typography-label-large-letter-spacing);
   cursor: pointer;
   box-shadow: var(--effect-soft-shadow);
 }
