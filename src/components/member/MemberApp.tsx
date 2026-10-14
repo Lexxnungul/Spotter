@@ -245,8 +245,10 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
           </div>
         </header>
 
-        {/* 1. Cached Status Card with 'as of' time */}
-        <section className={styles.statusCard} aria-label="Member Status">
+        {/* Main Content Landmark */}
+        <main className={styles.mainContent}>
+          {/* 1. Cached Status Card with 'as of' time */}
+          <section className={styles.statusCard} aria-label="Member Status">
           <div className={styles.statusHeader}>
             <span className={styles.tierBadge}>
               {memberData.fullName ? `${memberData.fullName} • ` : ''}{status.tier}
@@ -368,6 +370,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
             Ask
           </button>
         </form>
+        </main>
       </div>
     </div>
   );

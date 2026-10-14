@@ -11,7 +11,7 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  font-family: var(--typography-body-large-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-body-large-font-family, var(--font-dm-sans, sans-serif));
 }
 
 .screenContainer {
@@ -40,6 +40,14 @@
   justify-content: space-between;
   padding-bottom: var(--spacing-xs, 4px);
   border-bottom: 1px solid rgba(0, 68, 227, 0.12);
+}
+
+.mainContent {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  flex: 1;
 }
 
 .brandGroup {
@@ -115,7 +123,7 @@
   color: #ffffff;
   border-radius: var(--radius-full, 9999px);
   padding: 2px 10px;
-  font-family: var(--typography-label-small-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-label-small-font-family, var(--font-dm-sans, sans-serif));
   font-size: 11px;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 68, 227, 0.35);
@@ -123,7 +131,7 @@
 
 .asOfText {
   color: #0037b8;
-  font-family: var(--typography-label-small-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-label-small-font-family, var(--font-dm-sans, sans-serif));
   font-size: 11px;
 }
 
@@ -141,7 +149,7 @@
 
 .metricLabel {
   color: #4e5e82;
-  font-family: var(--typography-label-medium-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-label-medium-font-family, var(--font-dm-sans, sans-serif));
   font-size: 11px;
   font-weight: 500;
 }
@@ -302,7 +310,7 @@
 
 .blockTitle {
   color: #4e5e82;
-  font-family: var(--typography-label-medium-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-label-medium-font-family, var(--font-dm-sans, sans-serif));
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -323,7 +331,7 @@
   color: #002780;
   border-radius: var(--radius-full, 9999px);
   padding: 8px 12px;
-  font-family: var(--typography-label-medium-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-label-medium-font-family, var(--font-dm-sans, sans-serif));
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -361,7 +369,7 @@
   color: #00174c;
   border-radius: var(--radius-md, 8px);
   padding: 0 var(--spacing-md, 12px);
-  font-family: var(--typography-body-large-font-family, var(--font-inter, sans-serif));
+  font-family: var(--typography-body-large-font-family, var(--font-dm-sans, sans-serif));
   font-size: 13px;
   outline: none;
   transition: all 0.15s ease;

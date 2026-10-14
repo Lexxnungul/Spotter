@@ -4,7 +4,17 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import styles from './MarketingPage.module.css';
 
-export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void }) {
+interface MarketingPageProps {
+  onOpenApp?: () => void;
+  onViewPrivacy?: () => void;
+  onViewTerms?: () => void;
+}
+
+export default function MarketingPage({
+  onOpenApp,
+  onViewPrivacy,
+  onViewTerms,
+}: MarketingPageProps) {
   const { user, openAuthModal, logout } = useAuth();
 
   useEffect(() => {
@@ -28,7 +38,7 @@ export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void })
       {/* Top Navbar */}
       <header className={styles.navbar}>
         <div className={styles.brandGroup}>
-          <div className={styles.brandLogo} id="brand-header-logo" aria-label="Spotter Logo">
+          <div className={styles.brandLogo} id="brand-header-logo">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 32 32"
@@ -36,7 +46,7 @@ export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void })
               height="36"
               className={styles.brandLogoSvg}
               role="img"
-              aria-label="Spotter S Logo"
+              aria-label="Spotter Logo"
             >
               <rect width="32" height="32" rx="0" fill="var(--color-primary, #0044e3)" />
               <text x="16" y="23" fontFamily="system-ui, -apple-system, sans-serif" fontSize="20" fontWeight="700" fill="#ffffff" textAnchor="middle">S</text>
@@ -44,7 +54,7 @@ export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void })
           </div>
         </div>
 
-        <div className={styles.navActions}>
+        <nav className={styles.navActions} aria-label="Main Navigation">
           {user ? (
             <>
               <button
@@ -74,27 +84,21 @@ export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void })
               Get Started
             </button>
           )}
-        </div>
+        </nav>
       </header>
 
       {/* 100vh Hero Core */}
-      <main className={styles.heroSection}>
+      <main className={styles.heroSection} id="main-content" aria-labelledby="hero-heading">
         <div className={styles.heroGrid}>
           {/* Left Column: Headline and Call-to-actions */}
           <div className={styles.heroContent}>
-            <div className={styles.eyebrowPill}>
-              ZERO-LEAK GYM PLATFORM • LAGOS, NIGERIA
-            </div>
-
-            <h1 className={styles.heroHeading}>
+            <h1 className={styles.heroHeading} id="hero-heading">
               Approved gym records, instant check-in, and{' '}
               <span className={styles.heroHeadingHighlight}>member balance.</span>
             </h1>
 
             <p className={styles.heroSubtitle}>
-              Spotter delivers row-level attendance security, audited Flutterwave payments,
-              and an AI desk assistant. Built specifically for member phones, bandwidth limits,
-              and Nigerian gym operations.
+              Row-level attendance security, audited Flutterwave payments, and an AI desk assistant built for Nigerian gyms.
             </p>
 
             <div className={styles.ctaButtonGroup}>
@@ -102,77 +106,88 @@ export default function MarketingPage({ onOpenApp }: { onOpenApp?: () => void })
                 type="button"
                 className={styles.ctaButtonMain}
                 onClick={handleLaunchApp}
-                id="btn-hero-launch-app"
+                id="btn-hero-get-started"
               >
-                <span>🚀</span> Launch Member App
-              </button>
-
-              <button
-                type="button"
-                className={styles.ctaButtonSecondary}
-                onClick={() => openAuthModal('activate')}
-                id="btn-hero-activate"
-              >
-                <span>🔑</span> Activate Device (Desk Code)
-              </button>
-
-              <button
-                type="button"
-                className={styles.ctaButtonSecondary}
-                onClick={() => openAuthModal('staff')}
-                id="btn-hero-staff"
-              >
-                <span>🏢</span> Staff & Owner Portal
+                Get Started for free
               </button>
             </div>
 
-            {/* Feature Pillars Grid */}
-            <div className={styles.pillarsGrid} id="features">
-              <div className={styles.pillarCard}>
-                <span className={styles.pillarTitle}>
-                  <span>🔒</span> Row-Level Isolation
-                </span>
-                <span className={styles.pillarDesc}>
-                  PostgreSQL database policies guarantee members only ever see their own records.
-                </span>
+            {/* Card Section */}
+            <section className={styles.cardSection} id="card-section" aria-labelledby="card-section-title">
+              <div className={styles.cardSectionHeader}>
+                <h2 className={styles.cardSectionTitle} id="card-section-title">Built For Member Independence</h2>
+                <p className={styles.cardSectionSubtitle}>
+                  Zero clutter, zero ads, and instant confirmation.
+                </p>
               </div>
 
-              <div className={styles.pillarCard}>
-                <span className={styles.pillarTitle}>
-                  <span>📱</span> 100dvh PWA Shell
-                </span>
-                <span className={styles.pillarDesc}>
-                  Under 200 KB compressed. Cached status works offline during power and network outages.
-                </span>
-              </div>
+              <div className={styles.cardsGrid}>
+                {/* 01 Check In */}
+                <div className={styles.featureCard} aria-labelledby="feature-card-1-title">
+                  <div className={styles.cardBadgeNumber} aria-hidden="true">01</div>
+                  <h3 className={styles.cardHeading} id="feature-card-1-title">Check In</h3>
+                  <p className={styles.cardBodyText}>
+                    Generate a single-use six-digit code in the app and enter it at the door keypad for immediate arrival confirmation.
+                  </p>
+                </div>
 
-              <div className={styles.pillarCard}>
-                <span className={styles.pillarTitle}>
-                  <span>🤖</span> AI Desk Router
-                </span>
-                <span className={styles.pillarDesc}>
-                  Answers timetables and prices instantly. Hands off cancellations to WhatsApp with zero guesswork.
-                </span>
+                {/* 02 My Records */}
+                <div className={styles.featureCard} aria-labelledby="feature-card-2-title">
+                  <div className={styles.cardBadgeNumber} aria-hidden="true">02</div>
+                  <h3 className={styles.cardHeading} id="feature-card-2-title">My Records</h3>
+                  <p className={styles.cardBodyText}>
+                    Private attendance history and exact ledger balance read strictly by your authenticated member account.
+                  </p>
+                </div>
+
+                {/* 03 Ask About The Gym */}
+                <div className={styles.featureCard} aria-labelledby="feature-card-3-title">
+                  <div className={styles.cardBadgeNumber} aria-hidden="true">03</div>
+                  <h3 className={styles.cardHeading} id="feature-card-3-title">Ask About The Gym</h3>
+                  <p className={styles.cardBodyText}>
+                    Direct answers grounded only in the gym&apos;s approved written records. Outdated or missing answers are never guessed.
+                  </p>
+                </div>
+
+                {/* 04 Pay & Renew */}
+                <div className={styles.featureCard} aria-labelledby="feature-card-4-title">
+                  <div className={styles.cardBadgeNumber} aria-hidden="true">04</div>
+                  <h3 className={styles.cardHeading} id="feature-card-4-title">Pay &amp; Renew</h3>
+                  <p className={styles.cardBodyText}>
+                    Renew subscriptions or clear arrears via Flutterwave. Confirmed payments extend your membership instantly.
+                  </p>
+                </div>
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </main>
 
-      {/* Bottom Trust Verification Bar */}
-      <footer className={styles.bottomTrustBar} id="security">
-        <div className={styles.trustList}>
-          <div className={styles.trustItem}>
-            <span className={styles.trustCheck}>✓</span> NDPA 2023 Consent Logs
+      {/* Site Footer */}
+      <footer className={styles.footer} id="site-footer" aria-label="Site Footer">
+        <div className={styles.footerInner}>
+          <div className={styles.footerBrand}>
+            Spotter &bull; Gym Member System
           </div>
-          <div className={styles.trustItem}>
-            <span className={styles.trustCheck}>✓</span> Lagos Timezone Enforcement
-          </div>
-          <div className={styles.trustItem}>
-            <span className={styles.trustCheck}>✓</span> Server-Side Idempotency Keys
-          </div>
+          <nav className={styles.footerLinks} aria-label="Legal documents">
+            <button
+              type="button"
+              onClick={onViewPrivacy}
+              className={styles.footerLink}
+              id="link-footer-privacy"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={onViewTerms}
+              className={styles.footerLink}
+              id="link-footer-terms"
+            >
+              Terms of Service
+            </button>
+          </nav>
         </div>
-        <div>Spotter v0.2 • Built with Design System Tokens</div>
       </footer>
     </div>
   );

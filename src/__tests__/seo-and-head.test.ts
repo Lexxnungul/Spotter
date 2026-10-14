@@ -3,8 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 vi.mock('next/font/google', () => ({
-  DM_Sans: () => ({ variable: '--font-dm-sans' }),
-  Inter: () => ({ variable: '--font-inter' }),
+  DM_Sans: () => ({ variable: '--font-dm-sans', className: '__className_dmSans' }),
 }));
 import { metadata as rootMetadata } from '../app/layout';
 import { metadata as homeMetadata } from '../app/page';
@@ -28,6 +27,13 @@ describe('Head & SEO Specifications', () => {
 
     it('member route specifies member portal title', () => {
       expect(memberMetadata.title).toBe('Member Portal');
+    });
+
+    it('privacy and terms are in-page views without separate route page files', () => {
+      const privacyPagePath = path.resolve(__dirname, '../app/privacy/page.tsx');
+      const termsPagePath = path.resolve(__dirname, '../app/terms/page.tsx');
+      expect(fs.existsSync(privacyPagePath)).toBe(false);
+      expect(fs.existsSync(termsPagePath)).toBe(false);
     });
   });
 

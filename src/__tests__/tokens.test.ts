@@ -54,4 +54,13 @@ describe('Design Tokens & CSS Variables Integration', () => {
     expect(globalsCssContent).toMatch(/button\s*\{[^}]*line-height:\s*var\(--typography-label-large-line-height,\s*21px\);/);
     expect(globalsCssContent).toMatch(/button\s*\{[^}]*letter-spacing:\s*var\(--typography-label-large-letter-spacing,\s*-0.119px\);/);
   });
+
+  it('configures DM Sans as body and display font family in globals.css', () => {
+    const globalsCssPath = path.resolve(__dirname, '../app/globals.css');
+    const globalsCssContent = fs.readFileSync(globalsCssPath, 'utf8');
+
+    expect(globalsCssContent).toContain("--font-family-body: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;");
+    expect(globalsCssContent).toContain("--font-family-display: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;");
+    expect(globalsCssContent).not.toContain('--font-inter');
+  });
 });

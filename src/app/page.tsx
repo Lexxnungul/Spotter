@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import HomePageClient from '../components/marketing/HomePageClient';
 
+
 export const metadata: Metadata = {
   title: 'Spotter | Approved Gym Records',
   description: 'Approved gym member records',

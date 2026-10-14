@@ -2,7 +2,24 @@
 
 :root {
   --font-family-display: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-body: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-body: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Map Spotter typography tokens to the DM Sans web font stack */
+  --typography-display-large-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-display-medium-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-display-small-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-headline-large-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-headline-medium-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-headline-small-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-title-large-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-title-medium-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-title-small-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-body-large-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-body-medium-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-body-small-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-label-large-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-label-medium-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --typography-label-small-font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
 }
 
 *, *::before, *::after {
@@ -28,7 +45,6 @@ html, body {
 
 main {
   min-height: 100vh;
-  height: 100dvh;
   width: 100%;
   max-width: 100%;
   display: flex;
@@ -49,4 +65,9 @@ button {
 
 input, select, textarea {
   font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary, #0044e3);
+  outline-offset: 2px;
 }
