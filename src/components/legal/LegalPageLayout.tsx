@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import styles from './LegalPageLayout.module.css';
 
 interface LegalPageLayoutProps {
@@ -27,79 +26,45 @@ export default function LegalPageLayout({
     <div className={styles.pageContainer}>
       {/* Sticky Header */}
       <header className={styles.header}>
-        {onBackToHome ? (
-          <button
-            type="button"
-            onClick={onBackToHome}
-            className={styles.brandButton}
-            aria-label="Spotter Home"
-          >
-            <div className={styles.brandLogo}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 32 32"
-                width="32"
-                height="32"
-                aria-hidden="true"
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className={styles.brandButton}
+          aria-label="Spotter Home"
+        >
+          <div className={styles.brandLogo}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 32 32"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <rect width="32" height="32" rx="4" fill="#0044e3" />
+              <text
+                x="16"
+                y="23"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="20"
+                fontWeight="700"
+                fill="#ffffff"
+                textAnchor="middle"
               >
-                <rect width="32" height="32" rx="4" fill="#0044e3" />
-                <text
-                  x="16"
-                  y="23"
-                  fontFamily="system-ui, -apple-system, sans-serif"
-                  fontSize="20"
-                  fontWeight="700"
-                  fill="#ffffff"
-                  textAnchor="middle"
-                >
-                  S
-                </text>
-              </svg>
-            </div>
-            <span className={styles.brandTitle}>Spotter</span>
-          </button>
-        ) : (
-          <Link href="/" className={styles.brandLink} aria-label="Spotter Home">
-            <div className={styles.brandLogo}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 32 32"
-                width="32"
-                height="32"
-                aria-hidden="true"
-              >
-                <rect width="32" height="32" rx="4" fill="#0044e3" />
-                <text
-                  x="16"
-                  y="23"
-                  fontFamily="system-ui, -apple-system, sans-serif"
-                  fontSize="20"
-                  fontWeight="700"
-                  fill="#ffffff"
-                  textAnchor="middle"
-                >
-                  S
-                </text>
-              </svg>
-            </div>
-            <span className={styles.brandTitle}>Spotter</span>
-          </Link>
-        )}
+                S
+              </text>
+            </svg>
+          </div>
+          <span className={styles.brandTitle}>Spotter</span>
+        </button>
 
-        {onBackToHome ? (
-          <button
-            type="button"
-            onClick={onBackToHome}
-            className={styles.backButton}
-            id="btn-back-home"
-          >
-            &larr; Back to Home
-          </button>
-        ) : (
-          <Link href="/" className={styles.backButton} id="btn-back-home">
-            &larr; Back to Home
-          </Link>
-        )}
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className={styles.backButton}
+          id="btn-back-home"
+        >
+          &larr; Back to Home
+        </button>
       </header>
 
       {/* Main Legal Document Content */}
@@ -120,42 +85,22 @@ export default function LegalPageLayout({
             Spotter &bull; Gym Member System
           </div>
           <div className={styles.footerLinks}>
-            {onSelectView ? (
-              <button
-                type="button"
-                onClick={() => onSelectView('privacy')}
-                className={`${styles.footerLink} ${activePage === 'privacy' ? styles.activeFooterLink : ''}`}
-                id="link-footer-privacy"
-              >
-                Privacy Policy
-              </button>
-            ) : (
-              <Link
-                href="/privacy"
-                className={`${styles.footerLink} ${activePage === 'privacy' ? styles.activeFooterLink : ''}`}
-                id="link-footer-privacy"
-              >
-                Privacy Policy
-              </Link>
-            )}
-            {onSelectView ? (
-              <button
-                type="button"
-                onClick={() => onSelectView('terms')}
-                className={`${styles.footerLink} ${activePage === 'terms' ? styles.activeFooterLink : ''}`}
-                id="link-footer-terms"
-              >
-                Terms of Service
-              </button>
-            ) : (
-              <Link
-                href="/terms"
-                className={`${styles.footerLink} ${activePage === 'terms' ? styles.activeFooterLink : ''}`}
-                id="link-footer-terms"
-              >
-                Terms of Service
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={() => onSelectView?.('privacy')}
+              className={`${styles.footerLink} ${activePage === 'privacy' ? styles.activeFooterLink : ''}`}
+              id="link-footer-privacy"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectView?.('terms')}
+              className={`${styles.footerLink} ${activePage === 'terms' ? styles.activeFooterLink : ''}`}
+              id="link-footer-terms"
+            >
+              Terms of Service
+            </button>
           </div>
         </div>
       </footer>

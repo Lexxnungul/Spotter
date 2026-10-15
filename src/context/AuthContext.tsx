@@ -15,6 +15,9 @@ export interface MemberSession {
   linkedAt: string;
   consentedAt?: string;
   pinHash?: string;
+  email?: string;
+  memberNumber?: string;
+  password?: string;
 }
 
 export interface StaffSession {
@@ -30,14 +33,27 @@ export type AuthUser =
   | { type: 'staff'; staff: StaffSession }
   | null;
 
+export type AuthViewMode = 'create' | 'login' | 'pin' | 'activate' | 'staff';
+
 interface AuthContextType {
   user: AuthUser;
   isAuthenticated: boolean;
   lockoutRemainingSeconds: number;
   isAuthModalOpen: boolean;
-  authModalInitialTab: 'pin' | 'activate' | 'staff';
-  openAuthModal: (tab?: 'pin' | 'activate' | 'staff') => void;
+  authModalInitialTab: AuthViewMode;
+  openAuthModal: (tab?: AuthViewMode) => void;
   closeAuthModal: () => void;
+  createAccount: (data: {
+    fullName: string;
+    email: string;
+    memberNumber: string;
+    password: string;
+    hasConsented: boolean;
+  }) => Promise<{ success: boolean; error?: string }>;
+  loginWithCredentials: (
+    identifier: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
   loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   activateMember: (code: string, pin: string, consent: boolean) => Promise<{ success: boolean; error?: string }>;
   loginStaff: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -47,6 +63,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Demo seed data for instant pair-programming review
+export const DEMO_MEMBER_CHIOMA: MemberSession = {
+  id: 'mem_1042',
+  fullName: 'Chioma Adeyemi',
+  email: 'chioma@example.com',
+  memberNumber: '1042',
+  phone: '+234 802 345 6789',
+  tier: 'PREMIUM',
+  status: 'ACTIVE',
+  expiryDate: '28 October 2026',
+  daysTrained: 12,
+  balanceKobo: 0,
+  deviceToken: 'dev_tok_chioma_1042',
+  linkedAt: new Date().toISOString(),
+  consentedAt: new Date().toISOString(),
+  password: 'password123',
+};
+
 export const DEMO_MEMBER: MemberSession = {
   id: 'mem_demo_01',
   fullName: 'Tunde Bakare',
@@ -86,6 +119,7 @@ export const DEMO_ACTIVATION_CODES: Record<string, Partial<MemberSession>> = {
 };
 
 const STORAGE_SESSION_KEY = 'spotter_auth_session';
+const STORAGE_REGISTERED_MEMBERS_KEY = 'spotter_registered_members';
 const STORAGE_FAILED_PINS_KEY = 'spotter_failed_pin_tries';
 const STORAGE_LOCKOUT_UNTIL_KEY = 'spotter_pin_lockout_until';
 const MAX_FAILED_PINS = 5;
@@ -94,7 +128,7 @@ const LOCKOUT_DURATION_SECONDS = 30 * 60; // 30 minutes (FR-8)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [authModalInitialTab, setAuthModalInitialTab] = useState<'pin' | 'activate' | 'staff'>('pin');
+  const [authModalInitialTab, setAuthModalInitialTab] = useState<AuthViewMode>('create');
   const [lockoutRemainingSeconds, setLockoutRemainingSeconds] = useState<number>(0);
 
   // Initialize session and lockout state from storage
@@ -133,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [lockoutRemainingSeconds]);
 
-  const openAuthModal = (tab: 'pin' | 'activate' | 'staff' = 'pin') => {
+  const openAuthModal = (tab: AuthViewMode = 'create') => {
     setAuthModalInitialTab(tab);
     setIsAuthModalOpen(true);
   };
@@ -292,6 +326,183 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
+  const createAccount = async (data: {
+    fullName: string;
+    email: string;
+    memberNumber: string;
+    password: string;
+    hasConsented: boolean;
+  }): Promise<{ success: boolean; error?: string }> => {
+    const fullName = data.fullName.trim();
+    const email = data.email.trim().toLowerCase();
+    const memberNumber = data.memberNumber.trim();
+    const password = data.password;
+
+    if (!fullName) {
+      return { success: false, error: 'Full name is required.' };
+    }
+    if (fullName.length < 2) {
+      return { success: false, error: 'Full name must be at least 2 characters.' };
+    }
+    const nameWords = fullName.split(/\s+/).filter(Boolean);
+    if (nameWords.length < 2) {
+      return { success: false, error: 'Please enter at least 2 words or names separated by a space.' };
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+    if (!memberNumber) {
+      return { success: false, error: 'Please enter the member number on your gym card.' };
+    }
+    if (!/^\d{6}$/.test(memberNumber)) {
+      return { success: false, error: 'Member number must be exactly 6 digits.' };
+    }
+    if (password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
+    }
+    if (!data.hasConsented) {
+      return {
+        success: false,
+        error: 'You must accept the check-in history and email storage notice to create an account.',
+      };
+    }
+
+    const newMember: MemberSession = {
+      id: `mem_${memberNumber}`,
+      fullName,
+      email,
+      memberNumber,
+      password,
+      phone: '+234 800 000 0000',
+      tier: 'PREMIUM',
+      status: 'ACTIVE',
+      expiryDate: '28 October 2026',
+      daysTrained: 0,
+      balanceKobo: 0,
+      deviceToken: `dev_tok_${Math.random().toString(36).slice(2, 10)}`,
+      linkedAt: new Date().toISOString(),
+      consentedAt: new Date().toISOString(),
+    };
+
+    try {
+      const stored = localStorage.getItem(STORAGE_REGISTERED_MEMBERS_KEY);
+      const list: MemberSession[] = stored ? JSON.parse(stored) : [];
+      list.push(newMember);
+      localStorage.setItem(STORAGE_REGISTERED_MEMBERS_KEY, JSON.stringify(list));
+    } catch {
+      // LocalStorage error fallback
+    }
+
+    const sessionData: AuthUser = { type: 'member', member: newMember };
+    setUser(sessionData);
+    try {
+      localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+    } catch {}
+    setIsAuthModalOpen(false);
+    return { success: true };
+  };
+
+  const loginWithCredentials = async (
+    identifier: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const cleanId = identifier.trim().toLowerCase();
+    if (!cleanId || !password) {
+      return { success: false, error: 'Email or Member Number and password are required.' };
+    }
+
+    // 1. Staff / Owner check
+    if (cleanId === 'owner@spottergym.com' && password === 'ownerpassword') {
+      const staffData: AuthUser = {
+        type: 'staff',
+        staff: {
+          id: 'staff_owner_01',
+          fullName: 'Emeka Eze (Owner)',
+          email: 'owner@spottergym.com',
+          role: 'OWNER',
+          whatsapp: '+234 803 111 2222',
+        },
+      };
+      setUser(staffData);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
+      } catch {}
+      setIsAuthModalOpen(false);
+      return { success: true };
+    }
+
+    if (cleanId === 'desk@spottergym.com' && password === 'deskpassword') {
+      const staffData: AuthUser = {
+        type: 'staff',
+        staff: {
+          id: 'staff_desk_01',
+          fullName: 'Chioma Okeke (Desk Staff)',
+          email: 'desk@spottergym.com',
+          role: 'STAFF',
+          whatsapp: '+234 803 333 4444',
+        },
+      };
+      setUser(staffData);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
+      } catch {}
+      setIsAuthModalOpen(false);
+      return { success: true };
+    }
+
+    // 2. Check registered accounts in storage
+    try {
+      const stored = localStorage.getItem(STORAGE_REGISTERED_MEMBERS_KEY);
+      if (stored) {
+        const list: MemberSession[] = JSON.parse(stored);
+        const match = list.find(
+          (m) =>
+            (m.email?.toLowerCase() === cleanId || m.memberNumber?.toLowerCase() === cleanId) &&
+            m.password === password
+        );
+        if (match) {
+          const sessionData: AuthUser = { type: 'member', member: match };
+          setUser(sessionData);
+          localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+          setIsAuthModalOpen(false);
+          return { success: true };
+        }
+      }
+    } catch {}
+
+    // 3. Demo accounts
+    if (
+      (cleanId === '1042' || cleanId === 'chioma@example.com') &&
+      (password === 'password123' || password.length >= 8)
+    ) {
+      const sessionData: AuthUser = { type: 'member', member: DEMO_MEMBER_CHIOMA };
+      setUser(sessionData);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+      } catch {}
+      setIsAuthModalOpen(false);
+      return { success: true };
+    }
+
+    if (
+      (cleanId === 'tunde@example.com' || cleanId === 'mem_demo_01' || cleanId === '849201') &&
+      (password === '1234' || password === 'password123' || password.length >= 8)
+    ) {
+      const sessionData: AuthUser = { type: 'member', member: DEMO_MEMBER };
+      setUser(sessionData);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+      } catch {}
+      setIsAuthModalOpen(false);
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid credentials. Please verify your member number/email and password.',
+    };
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(STORAGE_SESSION_KEY);
@@ -307,6 +518,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authModalInitialTab,
         openAuthModal,
         closeAuthModal,
+        createAccount,
+        loginWithCredentials,
         loginWithPin,
         activateMember,
         loginStaff,

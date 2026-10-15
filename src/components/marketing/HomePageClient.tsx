@@ -13,24 +13,20 @@ export default function HomePageClient() {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState<ActiveHomeView>('marketing');
 
-  // Sync view with URL hash (e.g., #privacy, #terms, #member)
+  // Initialize view from URL if navigating directly to /privacy or /terms, or ?view=...
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash === 'privacy') {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      const pathname = window.location.pathname;
+      if (viewParam === 'privacy' || pathname === '/privacy') {
         setActiveView('privacy');
-      } else if (hash === 'terms') {
+      } else if (viewParam === 'terms' || pathname === '/terms') {
         setActiveView('terms');
-      } else if (hash === 'member') {
+      } else if (viewParam === 'member') {
         setActiveView('member');
-      } else if (!hash) {
-        setActiveView('marketing');
       }
-    };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    }
   }, []);
 
   // Update dynamic document title according to the active view
@@ -47,15 +43,15 @@ export default function HomePageClient() {
   }, [activeView]);
 
   const handleSelectView = (view: ActiveHomeView) => {
-    if (view === 'marketing') {
-      if (window.location.hash) {
-        history.pushState(null, '', window.location.pathname);
+    if (typeof window !== 'undefined') {
+      if (view === 'marketing') {
+        if (window.location.search || window.location.pathname !== '/') {
+          history.replaceState(null, '', '/');
+        }
       }
-    } else {
-      window.location.hash = view;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     setActiveView(view);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (activeView === 'member') {

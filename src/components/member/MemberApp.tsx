@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth, DEMO_MEMBER } from '../../context/AuthContext';
 import styles from './MemberApp.module.css';
 
@@ -82,6 +83,7 @@ const CARD_RECORDS: Record<string, CardRecord> = {
 };
 
 export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: () => void }) {
+  const router = useRouter();
   const { user, logout, openAuthModal } = useAuth();
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [questionText, setQuestionText] = useState<string>('');
@@ -237,7 +239,8 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               <button
                 type="button"
                 className={styles.headerBtn}
-                onClick={() => openAuthModal('pin')}
+                onClick={() => router.push('/auth?mode=login')}
+                title="Sign in to your account"
               >
                 Sign In
               </button>

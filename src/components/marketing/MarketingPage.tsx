@@ -25,7 +25,7 @@ export default function MarketingPage({
     if (user) {
       if (onOpenApp) onOpenApp();
     } else {
-      openAuthModal('pin');
+      openAuthModal('create');
     }
   };
 
@@ -78,7 +78,7 @@ export default function MarketingPage({
             <button
               type="button"
               className={styles.navButtonPrimary}
-              onClick={() => openAuthModal('pin')}
+              onClick={() => openAuthModal('create')}
               id="btn-nav-get-started"
             >
               Get Started
