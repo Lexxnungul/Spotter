@@ -566,6 +566,44 @@ describe('Auth System Specifications & Unified Member Portal Flow', () => {
       });
       expect(accepted.showSignal).toBe(false);
     });
+
+    it('normalizes email address input to lower case as the user types in create account form', () => {
+      const authModalPath = path.resolve(__dirname, '../components/auth/AuthModal.tsx');
+      const authModalContent = fs.readFileSync(authModalPath, 'utf8');
+
+      const authPagePath = path.resolve(__dirname, '../app/auth/page.tsx');
+      const authPageContent = fs.readFileSync(authPagePath, 'utf8');
+
+      for (const content of [authModalContent, authPageContent]) {
+        expect(content).toContain('setEmail(e.target.value.toLowerCase())');
+        expect(content).toContain('autoCapitalize="none"');
+      }
+
+      // Test normalization logic
+      const normalizeEmailInput = (typedValue: string) => typedValue.toLowerCase();
+      expect(normalizeEmailInput('CHIOMA@EXAMPLE.COM')).toBe('chioma@example.com');
+      expect(normalizeEmailInput('Chioma.Adeyemi@Example.Com')).toBe('chioma.adeyemi@example.com');
+    });
+
+    it('trims password fields on create account and login forms', () => {
+      const authModalPath = path.resolve(__dirname, '../components/auth/AuthModal.tsx');
+      const authModalContent = fs.readFileSync(authModalPath, 'utf8');
+
+      const authPagePath = path.resolve(__dirname, '../app/auth/page.tsx');
+      const authPageContent = fs.readFileSync(authPagePath, 'utf8');
+
+      for (const content of [authModalContent, authPageContent]) {
+        expect(content).toContain('password.trim().length >= 8');
+        expect(content).toContain('trimmedPassword !== password');
+        expect(content).toContain('trimmedPassword !== loginPassword');
+      }
+
+      // Test password trim logic
+      const trimPassword = (val: string) => val.trim();
+      expect(trimPassword('  mypassword123  ')).toBe('mypassword123');
+      expect(trimPassword('        ')).toBe('');
+      expect(trimPassword('  short  ').length >= 8).toBe(false);
+    });
   });
 });
 

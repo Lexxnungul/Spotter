@@ -1,119 +1,30 @@
-// schema.prisma
-// Postgres extension pgvector must be enabled once per database:
-// CREATE EXTENSION IF NOT EXISTS vector;
+// schema.prisma (SQLite Configuration)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum Role {
-  OWNER
-  STAFF
-}
-
-enum Tier {
-  BASIC
-  PREMIUM
-}
-
-enum MemberStatus {
-  ACTIVE
-  PAUSED
-  LEFT
-}
-
-enum CardType {
-  TIMETABLE
-  PRICES
-  RULES
-  ACCESS_HOURS
-  GUEST_POLICY
-  PAUSE_CANCELLATION
-  TRAINING_PLAN
-  TRAINER_GUIDANCE
-}
-
-enum CardStatus {
-  SUBMITTED
-  APPROVED
-  REJECTED
-  UNPUBLISHED
-}
-
-enum EmbedStatus {
-  OK
-  PENDING
-  FAILED
-}
-
-enum AttendanceSource {
-  APP
-  MANUAL
-}
-
-enum PaymentPurpose {
-  RENEWAL
-  BALANCE
-}
-
-enum PaymentMethod {
-  GATEWAY
-  CASH
-  TRANSFER
-  POS
-}
-
-enum PaymentStatus {
-  INITIATED
-  PENDING
-  SUCCESS
-  FAILED
-  ABANDONED
-}
-
-enum ExpirySource {
-  GATEWAY
-  DESK
-  OWNER_CORRECTION
-}
-
-enum QuestionLabel {
-  SHARED
-  PRIVATE_ATTENDANCE
-  PRIVATE_BALANCE
-  PRIVATE_PROFILE
-  NEVER_ANSWER
-  UNKNOWN
-}
-
-enum HandoffReason {
-  SILENT
-  NEVER_ANSWER
-  MEMBER_REQUESTED
-}
-
-enum WrongReportSource {
-  MEMBER
-  OWNER_SAMPLE
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // Private model. Every read of this model must include a memberId filter.
 // Never searched across members. Never embedded.
 model Member {
-  id                 String        @id @default(cuid())
+  id                 String              @id @default(cuid())
   fullName           String
-  phone              String        @unique
-  email              String?
-  tier               Tier
-  status             MemberStatus  @default(ACTIVE)
-  expiryDate         DateTime
-  openingBalanceKobo Int           @default(0)
-  createdAt          DateTime      @default(now())
+  phone              String?             @unique
+  email              String?             @unique
+  memberNumber       String?             @unique
+  passwordHash       String?
+  tier               String              @default("BASIC") // BASIC, PREMIUM
+  status             String              @default("ACTIVE") // ACTIVE, PAUSED, LEFT
+  expiryDate         DateTime            @default(now())
+  openingBalanceKobo Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  isEmailVerified    Boolean             @default(false)
+  emailVerifiedAt    DateTime?
 
   devices            Device[]
   attendance         Attendance[]
@@ -127,6 +38,8 @@ model Member {
   activationCodes    ActivationCode[]
 
   @@index([status])
+  @@index([memberNumber])
+  @@index([email])
 }
 
 // Private model. One row per linked phone. Fetched by memberId only.
@@ -168,7 +81,7 @@ model StaffAccount {
   fullName         String
   email            String         @unique
   passwordHash     String
-  role             Role
+  role             String         // OWNER, STAFF
   whatsapp         String
   createdAt        DateTime       @default(now())
 
@@ -197,8 +110,8 @@ model Setting {
 // Shared, not private. Gated by tier.
 model Card {
   id        String        @id @default(cuid())
-  type      CardType
-  tier      Tier
+  type      String        // TIMETABLE, PRICES, RULES, ACCESS_HOURS, GUEST_POLICY, PAUSE_CANCELLATION, TRAINING_PLAN, TRAINER_GUIDANCE
+  tier      String        // BASIC, PREMIUM
   title     String
   createdAt DateTime      @default(now())
 
@@ -208,19 +121,19 @@ model Card {
 }
 
 model CardVersion {
-  id             String        @id @default(cuid())
+  id             String         @id @default(cuid())
   cardId         String
-  card           Card          @relation(fields: [cardId], references: [id])
+  card           Card           @relation(fields: [cardId], references: [id])
   body           String
-  status         CardStatus    @default(SUBMITTED)
+  status         String         @default("SUBMITTED") // SUBMITTED, APPROVED, REJECTED, UNPUBLISHED
   authorId       String
-  author         StaffAccount  @relation("author", fields: [authorId], references: [id])
+  author         StaffAccount   @relation("author", fields: [authorId], references: [id])
   approverId     String?
-  approver       StaffAccount? @relation("approver", fields: [approverId], references: [id])
+  approver       StaffAccount?  @relation("approver", fields: [approverId], references: [id])
   rejectReason   String?
   confirmedAt    DateTime?
   reconfirmDueAt DateTime?
-  submittedAt    DateTime      @default(now())
+  submittedAt    DateTime       @default(now())
   approvedAt     DateTime?
   unpublishedAt  DateTime?
 
@@ -232,31 +145,31 @@ model CardVersion {
 // Shared, not private. Only approved shared cards are embedded.
 // Private records never enter this table.
 model CardEmbedding {
-  id            String                     @id @default(cuid())
-  cardVersionId String                     @unique
-  cardVersion   CardVersion                @relation(fields: [cardVersionId], references: [id])
-  vector        Unsupported("vector(768)")
-  status        EmbedStatus                @default(PENDING)
-  updatedAt     DateTime                   @updatedAt
+  id            String      @id @default(cuid())
+  cardVersionId String      @unique
+  cardVersion   CardVersion @relation(fields: [cardVersionId], references: [id])
+  vector        String?
+  status        String      @default("PENDING") // OK, PENDING, FAILED
+  updatedAt     DateTime    @updatedAt
 }
 
 // Private model. Fetched by memberId only. Never searched across members.
 model Attendance {
-  id        String           @id @default(cuid())
+  id        String        @id @default(cuid())
   memberId  String
-  member    Member           @relation(fields: [memberId], references: [id])
-  date      DateTime         @db.Date
-  source    AttendanceSource
+  member    Member        @relation(fields: [memberId], references: [id])
+  date      DateTime
+  source    String        // APP, MANUAL
   typistId  String?
-  typist    StaffAccount?    @relation("typist", fields: [typistId], references: [id])
-  createdAt DateTime         @default(now())
+  typist    StaffAccount? @relation("typist", fields: [typistId], references: [id])
+  createdAt DateTime      @default(now())
 
   @@unique([memberId, date])
   @@index([memberId])
 }
 
 model DailyCode {
-  date     DateTime @id @db.Date
+  date     DateTime @id
   codeHash String
   setById  String
 }
@@ -267,8 +180,8 @@ model Charge {
   memberId    String
   member      Member   @relation(fields: [memberId], references: [id])
   amountKobo  Int
-  periodStart DateTime @db.Date
-  periodEnd   DateTime @db.Date
+  periodStart DateTime
+  periodEnd   DateTime
   createdAt   DateTime @default(now())
 
   @@index([memberId])
@@ -276,19 +189,19 @@ model Charge {
 
 // Private model. Fetched by memberId only.
 model Payment {
-  id             String         @id @default(cuid())
+  id             String           @id @default(cuid())
   memberId       String
-  member         Member         @relation(fields: [memberId], references: [id])
-  purpose        PaymentPurpose
-  method         PaymentMethod
+  member         Member           @relation(fields: [memberId], references: [id])
+  purpose        String           // RENEWAL, BALANCE
+  method         String           // GATEWAY, CASH, TRANSFER, POS
   amountKobo     Int
-  status         PaymentStatus  @default(INITIATED)
-  idempotencyKey String         @unique
-  gatewayRef     String?        @unique
+  status         String           @default("INITIATED") // INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
+  idempotencyKey String           @unique
+  gatewayRef     String?          @unique
   typistId       String?
-  typist         StaffAccount?  @relation("typist", fields: [typistId], references: [id])
+  typist         StaffAccount?    @relation("typist", fields: [typistId], references: [id])
   reversalOfId   String?
-  createdAt      DateTime       @default(now())
+  createdAt      DateTime         @default(now())
   confirmedAt    DateTime?
 
   attempts       PaymentAttempt[]
@@ -298,41 +211,41 @@ model Payment {
 
 // Private model. Fetched by memberId only through Payment.
 model PaymentAttempt {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   paymentId String
-  payment   Payment       @relation(fields: [paymentId], references: [id])
-  status    PaymentStatus
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+  status    String   // INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
   detail    String?
-  at        DateTime      @default(now())
+  at        DateTime @default(now())
 
   @@index([paymentId])
 }
 
 // Private model. Fetched by memberId only.
 model ExpiryChange {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   memberId  String
-  member    Member       @relation(fields: [memberId], references: [id])
+  member    Member   @relation(fields: [memberId], references: [id])
   oldExpiry DateTime
   newExpiry DateTime
-  source    ExpirySource
+  source    String   // GATEWAY, DESK, OWNER_CORRECTION
   actorId   String?
-  createdAt DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([memberId])
 }
 
 // Private model. Fetched by memberId only.
 model QuestionLog {
-  id            String        @id @default(cuid())
+  id            String   @id @default(cuid())
   memberId      String
-  member        Member        @relation(fields: [memberId], references: [id])
-  tierAtTime    Tier
+  member        Member   @relation(fields: [memberId], references: [id])
+  tierAtTime    String   // BASIC, PREMIUM
   questionText  String
-  label         QuestionLabel
+  label         String   // SHARED, PRIVATE_ATTENDANCE, etc.
   found         Boolean
   cardVersionId String?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime @default(now())
 
   @@index([memberId])
   @@index([createdAt])
@@ -340,27 +253,27 @@ model QuestionLog {
 
 // Private model. Fetched by memberId only.
 model Handoff {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   memberId  String
-  member    Member        @relation(fields: [memberId], references: [id])
-  reason    HandoffReason
+  member    Member   @relation(fields: [memberId], references: [id])
+  reason    String   // SILENT, NEVER_ANSWER, MEMBER_REQUESTED
   staffName String
-  createdAt DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([memberId])
 }
 
 // Private model. Fetched by memberId only.
 model WrongAnswerReport {
-  id            String            @id @default(cuid())
+  id            String   @id @default(cuid())
   memberId      String?
-  member        Member?           @relation(fields: [memberId], references: [id])
+  member        Member?  @relation(fields: [memberId], references: [id])
   questionLogId String?
-  source        WrongReportSource
+  source        String   // MEMBER, OWNER_SAMPLE
   answerShown   String
   recordShown   String
   note          String?
-  createdAt     DateTime          @default(now())
+  createdAt     DateTime @default(now())
 
   @@index([memberId])
 }

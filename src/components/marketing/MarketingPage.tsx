@@ -23,6 +23,10 @@ export default function MarketingPage({
 
   const handleLaunchApp = () => {
     if (user) {
+      if (user.type === 'staff') {
+        window.location.href = '/receptionist';
+        return;
+      }
       if (onOpenApp) onOpenApp();
     } else {
       openAuthModal('create');
@@ -186,6 +190,13 @@ export default function MarketingPage({
             >
               Terms of Service
             </button>
+            <a
+              href="/receptionist"
+              className={styles.footerLink}
+              id="link-footer-receptionist"
+            >
+              Receptionist Desk
+            </a>
           </nav>
         </div>
       </footer>

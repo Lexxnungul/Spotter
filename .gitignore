@@ -22,6 +22,12 @@
 .env.production
 !.env.example
 
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Debug logs
 npm-debug.log*
 yarn-debug.log*

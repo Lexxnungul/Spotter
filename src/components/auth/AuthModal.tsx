@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import styles from './AuthModal.module.css';
 
 export default function AuthModal() {
+  const router = useRouter();
   const {
     isAuthModalOpen,
     authModalInitialTab,
@@ -79,7 +81,7 @@ export default function AuthModal() {
     getFullNameError(fullName) === null &&
     getEmailError(email, true) === null &&
     getMemberNumberError(memberNumber, true) === null &&
-    password.length >= 8;
+    password.trim().length >= 8;
 
   const isCreateFormValid = areFieldsFilledAndValid && hasConsented;
 
@@ -172,7 +174,11 @@ export default function AuthModal() {
       setErrorMsg(memberNumErr);
       return;
     }
-    if (password.length < 8) {
+    const trimmedPassword = password.trim();
+    if (trimmedPassword !== password) {
+      setPassword(trimmedPassword);
+    }
+    if (trimmedPassword.length < 8) {
       setErrorMsg('Password must be at least 8 characters long.');
       return;
     }
@@ -189,13 +195,15 @@ export default function AuthModal() {
       fullName,
       email,
       memberNumber,
-      password,
+      password: trimmedPassword,
       hasConsented,
     });
     setIsSubmitting(false);
 
     if (!res.success) {
       setErrorMsg(res.error || 'Failed to create account.');
+    } else {
+      router.push('/onboarding');
     }
   };
 
@@ -203,8 +211,12 @@ export default function AuthModal() {
     e.preventDefault();
     setErrorMsg(null);
 
+    const trimmedPassword = loginPassword.trim();
+    if (trimmedPassword !== loginPassword) {
+      setLoginPassword(trimmedPassword);
+    }
     const emptyIdentifier = !loginIdentifier.trim();
-    const emptyPassword = !loginPassword.trim();
+    const emptyPassword = !trimmedPassword;
 
     if (emptyIdentifier || emptyPassword) {
       setLoginTouched({
@@ -215,11 +227,16 @@ export default function AuthModal() {
     }
 
     setIsSubmitting(true);
-    const res = await loginWithCredentials(loginIdentifier, loginPassword);
+    const res = await loginWithCredentials(loginIdentifier.trim(), trimmedPassword);
     setIsSubmitting(false);
 
     if (!res.success) {
       setErrorMsg(res.error || 'Invalid credentials.');
+    } else {
+      const isStaff = loginIdentifier.toLowerCase().includes('desk@') || loginIdentifier.toLowerCase().includes('owner@');
+      if (isStaff) {
+        router.push('/receptionist');
+      }
     }
   };
 
@@ -315,7 +332,7 @@ export default function AuthModal() {
                   type="email"
                   value={email}
                   onChange={(e) => {
-                    setEmail(e.target.value);
+                    setEmail(e.target.value.toLowerCase());
                   }}
                   onBlur={() => {
                     setCreateTouched((prev) => ({ ...prev, email: true }));
@@ -324,6 +341,9 @@ export default function AuthModal() {
                   placeholder="chioma@example.com"
                   aria-invalid={createErrors.email ? 'true' : undefined}
                   aria-describedby={createErrors.email ? 'error-input-email-address' : undefined}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                 />
                 {createErrors.email && (
@@ -397,7 +417,11 @@ export default function AuthModal() {
                       }
                     }}
                     onBlur={() => {
-                      if (!password.trim()) {
+                      const trimmed = password.trim();
+                      if (trimmed !== password) {
+                        setPassword(trimmed);
+                      }
+                      if (!trimmed) {
                         setCreateTouched((prev) => ({ ...prev, password: true }));
                       }
                     }}
@@ -545,7 +569,11 @@ export default function AuthModal() {
                       }
                     }}
                     onBlur={() => {
-                      if (!loginPassword.trim()) {
+                      const trimmed = loginPassword.trim();
+                      if (trimmed !== loginPassword) {
+                        setLoginPassword(trimmed);
+                      }
+                      if (!trimmed) {
                         setLoginTouched((prev) => ({ ...prev, loginPassword: true }));
                       }
                     }}

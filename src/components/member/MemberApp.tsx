@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, DEMO_MEMBER } from '../../context/AuthContext';
+import EmailVerificationBanner from './EmailVerificationBanner';
 import styles from './MemberApp.module.css';
 
 interface CachedStatus {
@@ -226,6 +227,15 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                 ← Marketing
               </button>
             )}
+            <button
+              type="button"
+              id="member-orientation-btn"
+              className={styles.headerBtn}
+              onClick={() => router.push('/onboarding')}
+              title="Review member orientation"
+            >
+              Guide
+            </button>
             {user ? (
               <button
                 type="button"
@@ -250,6 +260,9 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
 
         {/* Main Content Landmark */}
         <main className={styles.mainContent}>
+          {/* Email Verification Banner */}
+          <EmailVerificationBanner />
+
           {/* 1. Cached Status Card with 'as of' time */}
           <section className={styles.statusCard} aria-label="Member Status">
           <div className={styles.statusHeader}>

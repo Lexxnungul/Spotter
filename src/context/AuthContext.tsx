@@ -18,6 +18,7 @@ export interface MemberSession {
   email?: string;
   memberNumber?: string;
   password?: string;
+  isEmailVerified?: boolean;
 }
 
 export interface StaffSession {
@@ -57,6 +58,8 @@ interface AuthContextType {
   loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   activateMember: (code: string, pin: string, consent: boolean) => Promise<{ success: boolean; error?: string }>;
   loginStaff: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  verifyEmail: (code: string) => Promise<{ success: boolean; error?: string }>;
+  resendVerificationEmail: () => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => void;
 }
 
@@ -78,6 +81,7 @@ export const DEMO_MEMBER_CHIOMA: MemberSession = {
   linkedAt: new Date().toISOString(),
   consentedAt: new Date().toISOString(),
   password: 'password123',
+  isEmailVerified: true,
 };
 
 export const DEMO_MEMBER: MemberSession = {
@@ -93,6 +97,7 @@ export const DEMO_MEMBER: MemberSession = {
   linkedAt: new Date().toISOString(),
   consentedAt: new Date().toISOString(),
   pinHash: '1234',
+  isEmailVerified: true,
 };
 
 export const DEMO_ACTIVATION_CODES: Record<string, Partial<MemberSession>> = {
@@ -281,12 +286,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginStaff = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
-    if (!cleanEmail || !password) {
+    if (!cleanEmail || !cleanPassword) {
       return { success: false, error: 'Email and password are required.' };
     }
 
-    if (cleanEmail === 'owner@spottergym.com' && password === 'ownerpassword') {
+    if (cleanEmail === 'owner@spottergym.com' && cleanPassword === 'ownerpassword') {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -303,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     }
 
-    if (cleanEmail === 'desk@spottergym.com' && password === 'deskpassword') {
+    if (cleanEmail === 'desk@spottergym.com' && cleanPassword === 'deskpassword') {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -336,7 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const fullName = data.fullName.trim();
     const email = data.email.trim().toLowerCase();
     const memberNumber = data.memberNumber.trim();
-    const password = data.password;
+    const password = data.password.trim();
 
     if (!fullName) {
       return { success: false, error: 'Full name is required.' };
@@ -367,39 +373,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const newMember: MemberSession = {
-      id: `mem_${memberNumber}`,
-      fullName,
-      email,
-      memberNumber,
-      password,
-      phone: '+234 800 000 0000',
-      tier: 'PREMIUM',
-      status: 'ACTIVE',
-      expiryDate: '28 October 2026',
-      daysTrained: 0,
-      balanceKobo: 0,
-      deviceToken: `dev_tok_${Math.random().toString(36).slice(2, 10)}`,
-      linkedAt: new Date().toISOString(),
-      consentedAt: new Date().toISOString(),
-    };
-
     try {
-      const stored = localStorage.getItem(STORAGE_REGISTERED_MEMBERS_KEY);
-      const list: MemberSession[] = stored ? JSON.parse(stored) : [];
-      list.push(newMember);
-      localStorage.setItem(STORAGE_REGISTERED_MEMBERS_KEY, JSON.stringify(list));
+      const apiRes = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          email,
+          memberNumber,
+          password,
+          hasConsented: data.hasConsented,
+        }),
+      });
+
+      const resData = await apiRes.json();
+
+      if (!apiRes.ok || !resData.success) {
+        return {
+          success: false,
+          error: resData.error || 'Failed to create account.',
+        };
+      }
+
+      const sessionData: AuthUser = { type: 'member', member: resData.member };
+      setUser(sessionData);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+      } catch {}
+      setIsAuthModalOpen(false);
+      return { success: true };
     } catch {
-      // LocalStorage error fallback
+      return {
+        success: false,
+        error: 'Unable to connect to server. Please check your internet connection.',
+      };
     }
-
-    const sessionData: AuthUser = { type: 'member', member: newMember };
-    setUser(sessionData);
-    try {
-      localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
-    } catch {}
-    setIsAuthModalOpen(false);
-    return { success: true };
   };
 
   const loginWithCredentials = async (
@@ -407,12 +415,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string
   ): Promise<{ success: boolean; error?: string }> => {
     const cleanId = identifier.trim().toLowerCase();
-    if (!cleanId || !password) {
+    const cleanPassword = password.trim();
+    if (!cleanId || !cleanPassword) {
       return { success: false, error: 'Email or Member Number and password are required.' };
     }
 
+    try {
+      const apiRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanId, password: cleanPassword }),
+      });
+
+      const resData = await apiRes.json();
+
+      if (apiRes.ok && resData.success && resData.user) {
+        setUser(resData.user);
+        try {
+          localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(resData.user));
+        } catch {}
+        setIsAuthModalOpen(false);
+        return { success: true };
+      }
+
+      if (resData.error) {
+        return { success: false, error: resData.error };
+      }
+    } catch {
+      // Fallback below if server request fails
+    }
+
     // 1. Staff / Owner check
-    if (cleanId === 'owner@spottergym.com' && password === 'ownerpassword') {
+    if (cleanId === 'owner@spottergym.com' && cleanPassword === 'ownerpassword') {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -431,7 +465,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     }
 
-    if (cleanId === 'desk@spottergym.com' && password === 'deskpassword') {
+    if (cleanId === 'desk@spottergym.com' && cleanPassword === 'deskpassword') {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -450,30 +484,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     }
 
-    // 2. Check registered accounts in storage
-    try {
-      const stored = localStorage.getItem(STORAGE_REGISTERED_MEMBERS_KEY);
-      if (stored) {
-        const list: MemberSession[] = JSON.parse(stored);
-        const match = list.find(
-          (m) =>
-            (m.email?.toLowerCase() === cleanId || m.memberNumber?.toLowerCase() === cleanId) &&
-            m.password === password
-        );
-        if (match) {
-          const sessionData: AuthUser = { type: 'member', member: match };
-          setUser(sessionData);
-          localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
-          setIsAuthModalOpen(false);
-          return { success: true };
-        }
-      }
-    } catch {}
-
-    // 3. Demo accounts
+    // 2. Demo accounts
     if (
       (cleanId === '1042' || cleanId === 'chioma@example.com') &&
-      (password === 'password123' || password.length >= 8)
+      (cleanPassword === 'password123' || cleanPassword.length >= 8)
     ) {
       const sessionData: AuthUser = { type: 'member', member: DEMO_MEMBER_CHIOMA };
       setUser(sessionData);
@@ -486,7 +500,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (
       (cleanId === 'tunde@example.com' || cleanId === 'mem_demo_01' || cleanId === '849201') &&
-      (password === '1234' || password === 'password123' || password.length >= 8)
+      (cleanPassword === '1234' || cleanPassword === 'password123' || cleanPassword.length >= 8)
     ) {
       const sessionData: AuthUser = { type: 'member', member: DEMO_MEMBER };
       setUser(sessionData);
@@ -501,6 +515,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       success: false,
       error: 'Invalid credentials. Please verify your member number/email and password.',
     };
+  };
+
+  const verifyEmail = async (code: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user || user.type !== 'member' || !user.member.email) {
+      return { success: false, error: 'No active member session found.' };
+    }
+    const cleanCode = code.trim();
+    if (!/^\d{6}$/.test(cleanCode)) {
+      return { success: false, error: 'Verification code must be exactly 6 digits.' };
+    }
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.member.email,
+          code: cleanCode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to verify email.' };
+      }
+      const updatedMember: MemberSession = { ...user.member, isEmailVerified: true };
+      const updatedUser: AuthUser = { type: 'member', member: updatedMember };
+      setUser(updatedUser);
+      try {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(updatedUser));
+      } catch {}
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Unable to connect to server. Please check your internet connection.' };
+    }
+  };
+
+  const resendVerificationEmail = async (): Promise<{ success: boolean; error?: string; message?: string }> => {
+    if (!user || user.type !== 'member' || !user.member.email) {
+      return { success: false, error: 'No active member session found.' };
+    }
+    try {
+      const res = await fetch('/api/auth/verify-email/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.member.email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to resend verification code.' };
+      }
+      return { success: true, message: data.message };
+    } catch {
+      return { success: false, error: 'Unable to connect to server. Please check your internet connection.' };
+    }
   };
 
   const logout = () => {
@@ -523,6 +592,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithPin,
         activateMember,
         loginStaff,
+        verifyEmail,
+        resendVerificationEmail,
         logout,
       }}
     >
