@@ -216,8 +216,7 @@ export default function AuthPage() {
     if (!res.success) {
       setErrorMsg(res.error || 'Invalid credentials.');
     } else {
-      const isStaff = loginIdentifier.toLowerCase().includes('desk@') || loginIdentifier.toLowerCase().includes('owner@');
-      if (isStaff) {
+      if (res.user?.type === 'staff') {
         router.push('/receptionist');
       } else {
         router.push('/member');

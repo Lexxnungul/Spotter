@@ -233,9 +233,11 @@ export default function AuthModal() {
     if (!res.success) {
       setErrorMsg(res.error || 'Invalid credentials.');
     } else {
-      const isStaff = loginIdentifier.toLowerCase().includes('desk@') || loginIdentifier.toLowerCase().includes('owner@');
-      if (isStaff) {
+      closeAuthModal();
+      if (res.user?.type === 'staff') {
         router.push('/receptionist');
+      } else {
+        router.push('/member');
       }
     }
   };

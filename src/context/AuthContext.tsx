@@ -54,10 +54,10 @@ interface AuthContextType {
   loginWithCredentials: (
     identifier: string,
     password: string
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; error?: string; user?: AuthUser }>;
   loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   activateMember: (code: string, pin: string, consent: boolean) => Promise<{ success: boolean; error?: string }>;
-  loginStaff: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginStaff: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: AuthUser }>;
   verifyEmail: (code: string) => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: () => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => void;
@@ -284,12 +284,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const loginStaff = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const loginStaff = async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: AuthUser }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
     if (!cleanEmail || !cleanPassword) {
       return { success: false, error: 'Email and password are required.' };
+    }
+
+    try {
+      const res = await loginWithCredentials(cleanEmail, cleanPassword);
+      if (res.success && res.user && res.user.type === 'staff') {
+        return { success: true, user: res.user };
+      }
+      if (!res.success && res.error) {
+        return { success: false, error: res.error };
+      }
+    } catch {
+      // Fallback to static check below
     }
 
     if (cleanEmail === 'owner@spottergym.com' && cleanPassword === 'ownerpassword') {
@@ -306,10 +318,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(staffData);
       localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
       setIsAuthModalOpen(false);
-      return { success: true };
+      return { success: true, user: staffData };
     }
 
-    if (cleanEmail === 'desk@spottergym.com' && cleanPassword === 'deskpassword') {
+    if (
+      cleanEmail === 'desk@spottergym.com' &&
+      (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
+    ) {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -323,12 +338,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(staffData);
       localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
       setIsAuthModalOpen(false);
-      return { success: true };
+      return { success: true, user: staffData };
     }
 
     return {
       success: false,
-      error: 'Invalid credentials. For quick demo test, use desk@spottergym.com / deskpassword or owner@spottergym.com / ownerpassword.',
+      error: 'Invalid credentials. Please verify your staff email and password.',
     };
   };
 
@@ -413,7 +428,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithCredentials = async (
     identifier: string,
     password: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; user?: AuthUser }> => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPassword = password.trim();
     if (!cleanId || !cleanPassword) {
@@ -435,7 +450,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(resData.user));
         } catch {}
         setIsAuthModalOpen(false);
-        return { success: true };
+        return { success: true, user: resData.user };
       }
 
       if (resData.error) {
@@ -462,10 +477,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
       } catch {}
       setIsAuthModalOpen(false);
-      return { success: true };
+      return { success: true, user: staffData };
     }
 
-    if (cleanId === 'desk@spottergym.com' && cleanPassword === 'deskpassword') {
+    if (
+      cleanId === 'desk@spottergym.com' &&
+      (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
+    ) {
       const staffData: AuthUser = {
         type: 'staff',
         staff: {
@@ -481,7 +499,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(staffData));
       } catch {}
       setIsAuthModalOpen(false);
-      return { success: true };
+      return { success: true, user: staffData };
     }
 
     // 2. Demo accounts

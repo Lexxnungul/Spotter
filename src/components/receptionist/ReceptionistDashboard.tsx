@@ -249,9 +249,9 @@ export default function ReceptionistDashboard() {
   // Quick Demo Access
   const handleQuickDemoStaff = async () => {
     setGateEmail('desk@spottergym.com');
-    setGatePassword('deskpassword');
+    setGatePassword('SpotterDesk#2026!');
     setIsLoggingIn(true);
-    const res = await loginStaff('desk@spottergym.com', 'deskpassword');
+    const res = await loginStaff('desk@spottergym.com', 'SpotterDesk#2026!');
     setIsLoggingIn(false);
     if (!res.success) {
       setGateError(res.error || 'Demo login failed.');
