@@ -4,6 +4,29 @@ import { verifyPassword } from '../../../../lib/auth-security';
 import { loginSchema, getZodErrorMessage } from '../../../../lib/validations/auth';
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../../lib/rate-limit';
 import { isEmailVerified } from '../../../../lib/email-verification';
+import { createStaffToken, STAFF_COOKIE_NAME, VerifiedStaff } from '../../../../lib/staff-auth';
+
+async function createStaffLoginResponse(staff: VerifiedStaff) {
+  const token = await createStaffToken(staff);
+  const res = NextResponse.json({
+    success: true,
+    user: {
+      type: 'staff',
+      staff,
+    },
+    token,
+  });
+
+  res.cookies.set(STAFF_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 12, // 12 hours
+  });
+
+  return res;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,18 +72,12 @@ export async function POST(req: NextRequest) {
       if (staffRecord && staffRecord.passwordHash) {
         const isStaffValid = verifyPassword(cleanPassword, staffRecord.passwordHash);
         if (isStaffValid) {
-          return NextResponse.json({
-            success: true,
-            user: {
-              type: 'staff',
-              staff: {
-                id: staffRecord.id,
-                fullName: staffRecord.fullName,
-                email: staffRecord.email,
-                role: staffRecord.role as 'STAFF' | 'OWNER',
-                whatsapp: staffRecord.whatsapp,
-              },
-            },
+          return await createStaffLoginResponse({
+            id: staffRecord.id,
+            fullName: staffRecord.fullName,
+            email: staffRecord.email,
+            role: staffRecord.role as 'STAFF' | 'OWNER',
+            whatsapp: staffRecord.whatsapp,
           });
         }
       }
@@ -69,18 +86,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (cleanId === 'owner@spottergym.com' && cleanPassword === 'ownerpassword') {
-      return NextResponse.json({
-        success: true,
-        user: {
-          type: 'staff',
-          staff: {
-            id: 'staff_owner_01',
-            fullName: 'Emeka Eze (Owner)',
-            email: 'owner@spottergym.com',
-            role: 'OWNER',
-            whatsapp: '+234 803 111 2222',
-          },
-        },
+      return await createStaffLoginResponse({
+        id: 'staff_owner_01',
+        fullName: 'Emeka Eze (Owner)',
+        email: 'owner@spottergym.com',
+        role: 'OWNER',
+        whatsapp: '+234 803 111 2222',
       });
     }
 
@@ -88,18 +99,12 @@ export async function POST(req: NextRequest) {
       cleanId === 'desk@spottergym.com' &&
       (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
     ) {
-      return NextResponse.json({
-        success: true,
-        user: {
-          type: 'staff',
-          staff: {
-            id: 'staff_desk_01',
-            fullName: 'Chioma Okeke (Desk Staff)',
-            email: 'desk@spottergym.com',
-            role: 'STAFF',
-            whatsapp: '+234 803 333 4444',
-          },
-        },
+      return await createStaffLoginResponse({
+        id: 'staff_desk_01',
+        fullName: 'Chioma Okeke (Desk Staff)',
+        email: 'desk@spottergym.com',
+        role: 'STAFF',
+        whatsapp: '+234 803 333 4444',
       });
     }
 

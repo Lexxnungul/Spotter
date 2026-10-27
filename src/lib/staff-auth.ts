@@ -1,84 +1,28 @@
-import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 import { prisma } from './prisma';
+import {
+  VerifiedStaff,
+  createStaffToken,
+  verifyStaffToken,
+  verifyStaffTokenEdge,
+  STAFF_COOKIE_NAME,
+  STAFF_AUTH_SECRET,
+} from './staff-token';
 
-export interface VerifiedStaff {
-  id: string;
-  fullName: string;
-  email: string;
-  role: 'STAFF' | 'OWNER';
-  whatsapp: string;
-}
+export type { VerifiedStaff };
+export {
+  createStaffToken,
+  verifyStaffToken,
+  verifyStaffTokenEdge,
+  STAFF_COOKIE_NAME,
+  STAFF_AUTH_SECRET,
+};
 
 export interface StaffAuthResult {
   authorized: boolean;
   staff?: VerifiedStaff;
   error?: string;
   status?: number;
-}
-
-// Session signing secret (defaults to a safe fallback in local development)
-const STAFF_AUTH_SECRET =
-  process.env.STAFF_SESSION_SECRET ||
-  process.env.SESSION_SECRET ||
-  'spotter_staff_secure_session_secret_2026';
-
-/**
- * Creates a cryptographically signed staff session token.
- * Payload: id, role, email, timestamp.
- */
-export function createStaffToken(staff: VerifiedStaff): string {
-  const payload = {
-    id: staff.id,
-    fullName: staff.fullName,
-    email: staff.email,
-    role: staff.role,
-    whatsapp: staff.whatsapp,
-    iat: Date.now(),
-  };
-
-  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', STAFF_AUTH_SECRET)
-    .update(payloadB64)
-    .digest('base64url');
-
-  return `${payloadB64}.${signature}`;
-}
-
-/**
- * Verifies a signed staff session token.
- */
-export function verifyStaffToken(token: string): VerifiedStaff | null {
-  try {
-    const [payloadB64, signature] = token.split('.');
-    if (!payloadB64 || !signature) return null;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', STAFF_AUTH_SECRET)
-      .update(payloadB64)
-      .digest('base64url');
-
-    // Constant-time signature comparison to prevent timing attacks
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-      return null;
-    }
-
-    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-    if (!payload.id || !payload.role || !['STAFF', 'OWNER'].includes(payload.role)) {
-      return null;
-    }
-
-    return {
-      id: payload.id,
-      fullName: payload.fullName,
-      email: payload.email,
-      role: payload.role,
-      whatsapp: payload.whatsapp || '+234 803 000 0000',
-    };
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -103,11 +47,20 @@ export const VERIFIED_STAFF_ACCOUNTS: Record<string, VerifiedStaff> = {
 
 /**
  * Validates staff authentication and permissions for a NextRequest.
- * Checks Bearer token in Authorization header, x-staff-* headers, or query parameters.
+ * Checks Cookies, Bearer token in Authorization header, x-staff-* headers, or query parameters.
  * Strict RBAC: only STAFF and OWNER roles are authorized.
  */
 export async function authenticateStaffRequest(req: NextRequest): Promise<StaffAuthResult> {
-  // 1. Check Authorization Bearer token
+  // 1. Check HTTP-only signed session cookie
+  const cookieToken = req.cookies.get(STAFF_COOKIE_NAME)?.value;
+  if (cookieToken) {
+    const verified = verifyStaffToken(cookieToken);
+    if (verified) {
+      return { authorized: true, staff: verified };
+    }
+  }
+
+  // 2. Check Authorization Bearer token
   const authHeader = req.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();
@@ -117,7 +70,7 @@ export async function authenticateStaffRequest(req: NextRequest): Promise<StaffA
     }
   }
 
-  // 2. Check x-staff-token header
+  // 3. Check x-staff-token header
   const staffToken = req.headers.get('x-staff-token');
   if (staffToken) {
     const verified = verifyStaffToken(staffToken);

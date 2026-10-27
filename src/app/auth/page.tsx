@@ -26,6 +26,12 @@ export default function AuthPage() {
       if (modeParam === 'login' || modeParam === 'create') {
         setMode(modeParam);
       }
+      const errorParam = params.get('error');
+      if (errorParam === 'staff_required') {
+        setErrorMsg('Front-desk staff credentials required to access the receptionist terminal.');
+      } else if (errorParam === 'invalid_session') {
+        setErrorMsg('Staff session expired. Please sign in again.');
+      }
     }
   }, []);
 
@@ -217,7 +223,9 @@ export default function AuthPage() {
       setErrorMsg(res.error || 'Invalid credentials.');
     } else {
       if (res.user?.type === 'staff') {
-        router.push('/receptionist');
+        const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const redirectUrl = params?.get('redirect') || '/receptionist';
+        router.push(redirectUrl);
       } else {
         router.push('/member');
       }

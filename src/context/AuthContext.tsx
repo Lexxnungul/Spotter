@@ -592,7 +592,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(STORAGE_SESSION_KEY);
+    try {
+      localStorage.removeItem(STORAGE_SESSION_KEY);
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    } catch {}
   };
 
   return (
