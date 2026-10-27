@@ -284,9 +284,9 @@ export default function ReceptionistDashboard() {
               </label>
               <input
                 id="staff-email-input"
-                type="email"
+                type="text"
                 className={styles.input}
-                placeholder="desk@spottergym.com"
+                placeholder="desk@spottergym.com or desk"
                 value={gateEmail}
                 onChange={(e) => setGateEmail(e.target.value)}
                 required

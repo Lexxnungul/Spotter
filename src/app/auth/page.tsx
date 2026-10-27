@@ -14,6 +14,7 @@ export default function AuthPage() {
   } = useAuth();
 
   const [mode, setMode] = useState<'create' | 'login'>('create');
+  const [isStaffMode, setIsStaffMode] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -26,7 +27,16 @@ export default function AuthPage() {
       if (modeParam === 'login' || modeParam === 'create') {
         setMode(modeParam);
       }
+      const redirectParam = params.get('redirect');
       const errorParam = params.get('error');
+      if (
+        errorParam === 'staff_required' ||
+        errorParam === 'invalid_session' ||
+        redirectParam?.includes('/receptionist')
+      ) {
+        setIsStaffMode(true);
+        setMode('login');
+      }
       if (errorParam === 'staff_required') {
         setErrorMsg('Front-desk staff credentials required to access the receptionist terminal.');
       } else if (errorParam === 'invalid_session') {
@@ -38,11 +48,16 @@ export default function AuthPage() {
   // Set document title
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = mode === 'create' ? 'Create Account | Spotter' : 'Member Log In | Spotter';
+    document.title =
+      mode === 'create'
+        ? 'Create Account | Spotter'
+        : isStaffMode
+        ? 'Receptionist Terminal Login | Spotter'
+        : 'Member Log In | Spotter';
     return () => {
       document.title = prevTitle;
     };
-  }, [mode]);
+  }, [mode, isStaffMode]);
 
   // Create Account Form Fields
   const [fullName, setFullName] = useState<string>('');
@@ -251,15 +266,21 @@ export default function AuthPage() {
             ✕
           </button>
 
-          <div className={styles.badge}>SPOTTER</div>
+          <div className={styles.badge}>{isStaffMode ? 'SPOTTER DESK' : 'SPOTTER'}</div>
 
           <h1 className={styles.title}>
-            {mode === 'create' ? 'Create Account' : 'Member Log In'}
+            {mode === 'create'
+              ? 'Create Account'
+              : isStaffMode
+              ? 'Receptionist Terminal Log In'
+              : 'Member Log In'}
           </h1>
 
           <p className={styles.subtitle}>
             {mode === 'create'
               ? 'Link your gym card to activate your personal Spotter portal.'
+              : isStaffMode
+              ? 'Front-desk staff portal. Sign in to access the receptionist intake terminal.'
               : 'Access your gym check-in code, attendance records, and balance.'}
           </p>
         </div>
@@ -493,7 +514,7 @@ export default function AuthPage() {
             <form onSubmit={handleLoginSubmit} noValidate>
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="input-login-id">
-                  Email Address
+                  {isStaffMode ? 'Staff Email or Desk ID' : 'Email Address'}
                 </label>
                 <input
                   id="input-login-id"
@@ -511,7 +532,7 @@ export default function AuthPage() {
                     }
                   }}
                   className={`${styles.input} ${loginErrors.loginIdentifier ? styles.inputError : ''}`}
-                  placeholder="chioma@example.com"
+                  placeholder={isStaffMode ? 'desk@spottergym.com or desk' : 'chioma@example.com'}
                   aria-invalid={loginErrors.loginIdentifier ? 'true' : undefined}
                   aria-describedby={loginErrors.loginIdentifier ? 'error-input-login-id' : undefined}
                   required
@@ -585,6 +606,44 @@ export default function AuthPage() {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Signing In...' : 'Log In'}
+              </button>
+
+              <button
+                type="button"
+                id="btn-quick-staff-demo"
+                onClick={async () => {
+                  setLoginIdentifier('desk@spottergym.com');
+                  setLoginPassword('SpotterDesk#2026!');
+                  setIsSubmitting(true);
+                  setErrorMsg(null);
+                  const res = await loginWithCredentials('desk@spottergym.com', 'SpotterDesk#2026!');
+                  setIsSubmitting(false);
+                  if (!res.success) {
+                    setErrorMsg(res.error || 'Demo login failed.');
+                  } else {
+                    router.push('/receptionist');
+                  }
+                }}
+                disabled={isSubmitting}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#e2e8f0',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  marginTop: '0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                ⚡ Quick Demo: Log In as Chioma Okeke (Desk Staff)
               </button>
             </form>
           )}

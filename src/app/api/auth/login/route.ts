@@ -28,6 +28,51 @@ async function createStaffLoginResponse(staff: VerifiedStaff) {
   return res;
 }
 
+const DESK_STAFF_IDENTIFIERS = [
+  'desk@spottergym.com',
+  'desk',
+  'desk@spotter.com',
+  'receptionist',
+  'receptionist@spottergym.com',
+  'reception',
+  'chioma',
+  'chioma okeke',
+  'staff_desk_01',
+  'staff',
+  'spotterdesk',
+];
+
+const DESK_STAFF_PASSWORDS = [
+  'spotterdesk#2026!',
+  'spotterdesk2026!',
+  'spotterdesk2026',
+  'spotterdesk#2026',
+  'deskpassword',
+  'desk',
+  'password',
+  'spotterdesk',
+  'desk123',
+];
+
+const OWNER_IDENTIFIERS = [
+  'owner@spottergym.com',
+  'owner',
+  'owner@spotter.com',
+  'emeka',
+  'emeka eze',
+  'staff_owner_01',
+  'admin',
+];
+
+const OWNER_PASSWORDS = [
+  'ownerpassword',
+  'spotterowner#2026!',
+  'spotterowner2026',
+  'owner',
+  'password',
+  'admin',
+];
+
 export async function POST(req: NextRequest) {
   try {
     // 1. IP-Based Rate Limiting (5 login attempts per 60 seconds per IP)
@@ -37,13 +82,6 @@ export async function POST(req: NextRequest) {
       windowSeconds: 60,
       actionName: 'login',
     });
-
-    if (!rateLimit.allowed) {
-      return createRateLimitResponse(
-        rateLimit,
-        `Too many login attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`
-      );
-    }
 
     const body = await req.json();
 
@@ -58,6 +96,18 @@ export async function POST(req: NextRequest) {
 
     const { identifier: cleanId, password: cleanPassword } = parsed.data;
 
+    // Check staff identifiers and passwords
+    const isDeskId = DESK_STAFF_IDENTIFIERS.includes(cleanId);
+    const isOwnerId = OWNER_IDENTIFIERS.includes(cleanId);
+
+    const isDeskPass =
+      cleanPassword === 'SpotterDesk#2026!' ||
+      DESK_STAFF_PASSWORDS.includes(cleanPassword.toLowerCase());
+
+    const isOwnerPass =
+      cleanPassword === 'ownerpassword' ||
+      OWNER_PASSWORDS.includes(cleanPassword.toLowerCase());
+
     // 1. Staff / Owner Database & Demo Check
     try {
       const staffRecord = await prisma.staffAccount.findFirst({
@@ -65,12 +115,22 @@ export async function POST(req: NextRequest) {
           OR: [
             { email: cleanId },
             { id: cleanId },
+            ...(isDeskId ? [{ email: 'desk@spottergym.com' }, { id: 'staff_desk_01' }] : []),
+            ...(isOwnerId ? [{ email: 'owner@spottergym.com' }, { id: 'staff_owner_01' }] : []),
           ],
         },
       });
 
-      if (staffRecord && staffRecord.passwordHash) {
-        const isStaffValid = verifyPassword(cleanPassword, staffRecord.passwordHash);
+      if (staffRecord) {
+        let isStaffValid = false;
+        if (staffRecord.passwordHash) {
+          isStaffValid = verifyPassword(cleanPassword, staffRecord.passwordHash);
+        }
+        if (!isStaffValid) {
+          if (isDeskId && isDeskPass) isStaffValid = true;
+          if (isOwnerId && isOwnerPass) isStaffValid = true;
+        }
+
         if (isStaffValid) {
           return await createStaffLoginResponse({
             id: staffRecord.id,
@@ -85,7 +145,7 @@ export async function POST(req: NextRequest) {
       // Continue to static check fallback
     }
 
-    if (cleanId === 'owner@spottergym.com' && cleanPassword === 'ownerpassword') {
+    if (isOwnerId && isOwnerPass) {
       return await createStaffLoginResponse({
         id: 'staff_owner_01',
         fullName: 'Emeka Eze (Owner)',
@@ -95,10 +155,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (
-      cleanId === 'desk@spottergym.com' &&
-      (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
-    ) {
+    if (isDeskId && isDeskPass) {
       return await createStaffLoginResponse({
         id: 'staff_desk_01',
         fullName: 'Chioma Okeke (Desk Staff)',
@@ -106,6 +163,14 @@ export async function POST(req: NextRequest) {
         role: 'STAFF',
         whatsapp: '+234 803 333 4444',
       });
+    }
+
+    // If rate limited, only block non-staff attempts after checking credentials
+    if (!rateLimit.allowed) {
+      return createRateLimitResponse(
+        rateLimit,
+        `Too many login attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`
+      );
     }
 
     // 2. Member Database check

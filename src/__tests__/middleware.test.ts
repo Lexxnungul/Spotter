@@ -132,6 +132,27 @@ describe('Server-Side HTTP Auth Guard & Middleware Pipeline', () => {
       expect(setCookie).toContain('Path=/');
     });
 
+    it('authenticates desk staff via shorthand alias "desk" and lowercase password', async () => {
+      const req = new NextRequest('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: 'desk',
+          password: 'spotterdesk#2026!',
+        }),
+      });
+
+      const res = await loginHandler(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.user.type).toBe('staff');
+      expect(data.user.staff.id).toBe('staff_desk_01');
+
+      const setCookie = res.headers.get('set-cookie');
+      expect(setCookie).toContain(STAFF_COOKIE_NAME);
+    });
+
     it('POST /api/auth/logout deletes spotter_staff_token cookie', async () => {
       const res = await logoutHandler();
       expect(res.status).toBe(200);

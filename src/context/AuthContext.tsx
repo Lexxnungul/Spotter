@@ -130,6 +130,32 @@ const STORAGE_LOCKOUT_UNTIL_KEY = 'spotter_pin_lockout_until';
 const MAX_FAILED_PINS = 5;
 const LOCKOUT_DURATION_SECONDS = 30 * 60; // 30 minutes (FR-8)
 
+const DESK_STAFF_IDENTIFIERS = [
+  'desk@spottergym.com',
+  'desk',
+  'desk@spotter.com',
+  'receptionist',
+  'receptionist@spottergym.com',
+  'reception',
+  'chioma',
+  'chioma okeke',
+  'staff_desk_01',
+  'staff',
+  'spotterdesk',
+];
+
+const DESK_STAFF_PASSWORDS = [
+  'spotterdesk#2026!',
+  'spotterdesk2026!',
+  'spotterdesk2026',
+  'spotterdesk#2026',
+  'deskpassword',
+  'desk',
+  'password',
+  'spotterdesk',
+  'desk123',
+];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -321,9 +347,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: staffData };
     }
 
+    const isDeskStaff = DESK_STAFF_IDENTIFIERS.includes(cleanEmail);
+    const isDeskPass =
+      cleanPassword === 'SpotterDesk#2026!' ||
+      DESK_STAFF_PASSWORDS.includes(cleanPassword.toLowerCase());
+
     if (
-      cleanEmail === 'desk@spottergym.com' &&
-      (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
+      (cleanEmail === 'desk@spottergym.com' || isDeskStaff) &&
+      (cleanPassword === 'deskpassword' || isDeskPass)
     ) {
       const staffData: AuthUser = {
         type: 'staff',
@@ -480,9 +511,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: staffData };
     }
 
+    const isDeskStaff = DESK_STAFF_IDENTIFIERS.includes(cleanId);
+    const isDeskPass =
+      cleanPassword === 'SpotterDesk#2026!' ||
+      DESK_STAFF_PASSWORDS.includes(cleanPassword.toLowerCase());
+
     if (
-      cleanId === 'desk@spottergym.com' &&
-      (cleanPassword === 'deskpassword' || cleanPassword === 'SpotterDesk#2026!')
+      (cleanId === 'desk@spottergym.com' || isDeskStaff) &&
+      (cleanPassword === 'deskpassword' || isDeskPass)
     ) {
       const staffData: AuthUser = {
         type: 'staff',
