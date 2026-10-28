@@ -37,3 +37,18 @@ yarn-error.log*
 .DS_Store
 *.pem
 Thumbs.db
+
+# Agent and context files / directories
+.agents/
+agents/
+rules/
+skills/
+docs/
+
+# Non-functional markdown documentation (preserve READMEs)
+*.md
+!README.md
+!README*.md
+!**/README.md
+!**/README*.md
+
