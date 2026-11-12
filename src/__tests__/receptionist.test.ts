@@ -23,8 +23,31 @@ import { prisma } from '../lib/prisma';
 import { resetRateLimitStore } from '../lib/rate-limit';
 
 describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
+  const testGeneratedMemberNumbers: string[] = [];
+
   beforeEach(() => {
     resetRateLimitStore();
+  });
+
+  afterAll(async () => {
+    if (testGeneratedMemberNumbers.length > 0) {
+      try {
+        await prisma.paymentAttempt.deleteMany({
+          where: { paymentLog: { member: { memberNumber: { in: testGeneratedMemberNumbers } } } },
+        });
+        await prisma.paymentLog.deleteMany({
+          where: { member: { memberNumber: { in: testGeneratedMemberNumbers } } },
+        });
+        await prisma.consentRecord.deleteMany({
+          where: { member: { memberNumber: { in: testGeneratedMemberNumbers } } },
+        });
+        await prisma.member.deleteMany({
+          where: { memberNumber: { in: testGeneratedMemberNumbers } },
+        });
+      } catch (err) {
+        console.error('Error cleaning up test members:', err);
+      }
+    }
   });
 
   describe('Cryptographic Member Number Generation & Formatting', () => {
@@ -103,6 +126,32 @@ describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].message).toContain('at least 2 words or names');
+      }
+    });
+
+    it('accepts all 3 valid tiers: BASIC, PREMIUM, and DIAMOND', () => {
+      const basic = generateMemberNumberSchema.safeParse({
+        fullName: 'Chidi Mokeme',
+        phone: '08023456789',
+        tier: 'BASIC',
+      });
+      expect(basic.success).toBe(true);
+
+      const premium = generateMemberNumberSchema.safeParse({
+        fullName: 'Chidi Mokeme',
+        phone: '08023456789',
+        tier: 'PREMIUM',
+      });
+      expect(premium.success).toBe(true);
+
+      const diamond = generateMemberNumberSchema.safeParse({
+        fullName: 'Chidi Mokeme',
+        phone: '08023456789',
+        tier: 'DIAMOND',
+      });
+      expect(diamond.success).toBe(true);
+      if (diamond.success) {
+        expect(diamond.data.tier).toBe('DIAMOND');
       }
     });
 
@@ -221,6 +270,7 @@ describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
       const res = await generateMemberNumberHandler(req);
       expect(res.status).toBe(201);
       const data = await res.json();
+      testGeneratedMemberNumbers.push(data.memberNumber);
       expect(data.success).toBe(true);
       expect(data.memberNumber).toHaveLength(6);
       expect(data.member.fullName).toBe('Fatima Dangote');
@@ -249,6 +299,8 @@ describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
 
       const res1 = await generateMemberNumberHandler(req1);
       expect(res1.status).toBe(201);
+      const data1 = await res1.json();
+      testGeneratedMemberNumbers.push(data1.memberNumber);
 
       // 2. Attempt duplicate with identical phone
       const req2 = new NextRequest('http://localhost:3000/api/receptionist/generate-member-number', {
@@ -335,6 +387,7 @@ describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
       expect(deskRes.status).toBe(201);
       const deskData = await deskRes.json();
       const generatedNumber = deskData.memberNumber;
+      testGeneratedMemberNumbers.push(generatedNumber);
       expect(generatedNumber).toHaveLength(6);
 
       // 2. Member arrives home, visits /auth, enters their generated 6-digit member number and sets password

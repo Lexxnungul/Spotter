@@ -28,7 +28,7 @@ model Member {
 
   devices            Device[]
   attendance         Attendance[]
-  payments           Payment[]
+  paymentLogs        PaymentLog[]
   charges            Charge[]
   expiryChanges      ExpiryChange[]
   questionLogs       QuestionLog[]
@@ -88,7 +88,7 @@ model StaffAccount {
   duties           Duty[]
   cardVersions     CardVersion[]  @relation("author")
   approvals        CardVersion[]  @relation("approver")
-  paymentEntries   Payment[]      @relation("typist")
+  paymentLogs      PaymentLog[]   @relation("typist")
   manualAttendance Attendance[]   @relation("typist")
 }
 
@@ -188,37 +188,50 @@ model Charge {
 }
 
 // Private model. Fetched by memberId only.
-model Payment {
+// Records the full member payment user journey and serves as the source of truth for payment verification.
+model PaymentLog {
   id             String           @id @default(cuid())
   memberId       String
   member         Member           @relation(fields: [memberId], references: [id])
-  purpose        String           // RENEWAL, BALANCE
+  purpose        String           // NEW_SUBSCRIPTION, RENEWAL, BALANCE
+  tier           String           @default("BASIC") // BASIC, PREMIUM, DIAMOND
   method         String           // GATEWAY, CASH, TRANSFER, POS
   amountKobo     Int
-  status         String           @default("INITIATED") // INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
+  status         String           @default("STARTED") // STARTED, INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
+  currentStage   String           @default("MODAL_OPENED") // MODAL_OPENED, PLAN_SELECTED, INITIATED, GATEWAY_REDIRECT, RETURNED_FROM_GATEWAY, VERIFY_CHECKED, WEBHOOK_RECEIVED, VERIFIED_SUCCESS, FAILED, ABANDONED_MODAL, DESK_RECORDED
+  journeyEvents  String           @default("[]")
   idempotencyKey String           @unique
   gatewayRef     String?          @unique
+  gatewayTxId    String?
+  gatewayStatus  String?
+  verifiedSource String?          // WEBHOOK, FLUTTERWAVE_VERIFY, SANDBOX, DESK
+  verifiedAt     DateTime?
+  failureReason  String?
   typistId       String?
   typist         StaffAccount?    @relation("typist", fields: [typistId], references: [id])
   reversalOfId   String?
   createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
   confirmedAt    DateTime?
 
   attempts       PaymentAttempt[]
 
   @@index([memberId])
+  @@index([memberId, status])
+  @@index([status, currentStage])
 }
 
-// Private model. Fetched by memberId only through Payment.
+// Private model. Fetched by memberId only through PaymentLog.
 model PaymentAttempt {
-  id        String   @id @default(cuid())
-  paymentId String
-  payment   Payment  @relation(fields: [paymentId], references: [id])
-  status    String   // INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
-  detail    String?
-  at        DateTime @default(now())
+  id           String     @id @default(cuid())
+  paymentLogId String
+  paymentLog   PaymentLog @relation(fields: [paymentLogId], references: [id])
+  stage        String?
+  status       String     // STARTED, INITIATED, PENDING, SUCCESS, FAILED, ABANDONED
+  detail       String?
+  at           DateTime   @default(now())
 
-  @@index([paymentId])
+  @@index([paymentLogId])
 }
 
 // Private model. Fetched by memberId only.

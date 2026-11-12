@@ -134,25 +134,48 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 8. If an initial payment was received at the desk, record payment traceability
+      // 8. If an initial payment was received at the desk, record payment traceability in PaymentLog
       if (initialPaymentKobo > 0 && paymentMethod !== 'PENDING') {
         try {
-          const idempotencyKey = `desk_init_pay_${newMember.id}_${Date.now()}`;
+          const now = new Date();
+          const idempotencyKey = `desk_init_pay_${newMember.id}_${now.getTime()}`;
           const staffExists = await prisma.staffAccount.findUnique({
             where: { id: staff.id },
             select: { id: true },
           });
+          const detail = `Recorded initial desk ${paymentMethod} payment of ${initialPaymentKobo} kobo for ${tier} tier`;
+          const initialJourney = JSON.stringify([
+            {
+              stage: 'DESK_RECORDED',
+              status: 'SUCCESS',
+              actor: staffExists ? `staff:${staff.id}` : 'front_desk',
+              detail,
+              timestamp: now.toISOString(),
+            },
+          ]);
 
-          await prisma.payment.create({
+          await prisma.paymentLog.create({
             data: {
               memberId: newMember.id,
               purpose: 'RENEWAL',
+              tier,
               method: paymentMethod,
               amountKobo: initialPaymentKobo,
               status: 'SUCCESS',
+              currentStage: 'DESK_RECORDED',
+              journeyEvents: initialJourney,
+              verifiedSource: 'DESK',
+              verifiedAt: now,
               idempotencyKey,
               typistId: staffExists ? staff.id : null,
-              confirmedAt: new Date(),
+              confirmedAt: now,
+              attempts: {
+                create: {
+                  stage: 'DESK_RECORDED',
+                  status: 'SUCCESS',
+                  detail,
+                },
+              },
             },
           });
         } catch (paymentErr) {

@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import {
-  DEMO_MEMBER,
-  DEMO_MEMBER_CHIOMA,
-  DEMO_ACTIVATION_CODES,
-} from '../context/AuthContext';
+import { loginSchema } from '../lib/validations/auth';
 
 describe('Auth System Specifications & Unified Member Portal Flow', () => {
   beforeEach(() => {
@@ -16,12 +12,12 @@ describe('Auth System Specifications & Unified Member Portal Flow', () => {
   });
 
   describe('Create Account & Gym Card Linking Flow (New Portal Auth)', () => {
-    it('provides pre-seeded Chioma Adeyemi member data matching portal design', () => {
-      expect(DEMO_MEMBER_CHIOMA).toBeDefined();
-      expect(DEMO_MEMBER_CHIOMA.fullName).toBe('Chioma Adeyemi');
-      expect(DEMO_MEMBER_CHIOMA.email).toBe('chioma@example.com');
-      expect(DEMO_MEMBER_CHIOMA.memberNumber).toBe('1042');
-      expect(DEMO_MEMBER_CHIOMA.tier).toBe('PREMIUM');
+    it('removes client-side demo member fallbacks in AuthContext in favor of database auth', () => {
+      const authContextPath = path.resolve(__dirname, '../context/AuthContext.tsx');
+      const authContextContent = fs.readFileSync(authContextPath, 'utf8');
+      expect(authContextContent).not.toContain('DEMO_MEMBER');
+      expect(authContextContent).not.toContain('DEMO_ACTIVATION_CODES');
+      expect(authContextContent).not.toContain('isClientDemoMemberId');
     });
 
     it('requires password to be at least 8 characters', () => {
@@ -56,20 +52,24 @@ describe('Auth System Specifications & Unified Member Portal Flow', () => {
   });
 
   describe('Credentials Login (Members, Staff and Owner)', () => {
-    it('authenticates member by email or card number', () => {
-      const loginByEmail = 'chioma@example.com';
-      const loginByCard = '1042';
-      const pass = 'password123';
+    it('validates member login inputs by email or member number', () => {
+      const byEmail = loginSchema.safeParse({
+        identifier: 'Member@Example.com',
+        password: 'password123',
+      });
+      const byCard = loginSchema.safeParse({
+        identifier: ' 123456 ',
+        password: 'password123',
+      });
 
-      const isMatchEmail =
-        loginByEmail.toLowerCase() === DEMO_MEMBER_CHIOMA.email &&
-        pass === DEMO_MEMBER_CHIOMA.password;
-      const isMatchCard =
-        loginByCard === DEMO_MEMBER_CHIOMA.memberNumber &&
-        pass === DEMO_MEMBER_CHIOMA.password;
-
-      expect(isMatchEmail).toBe(true);
-      expect(isMatchCard).toBe(true);
+      expect(byEmail.success).toBe(true);
+      if (byEmail.success) {
+        expect(byEmail.data.identifier).toBe('member@example.com');
+      }
+      expect(byCard.success).toBe(true);
+      if (byCard.success) {
+        expect(byCard.data.identifier).toBe('123456');
+      }
     });
 
     it('recognizes OWNER credentials in unified login', () => {

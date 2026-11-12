@@ -33,8 +33,8 @@ export const generateMemberNumberSchema = z.object({
     .refine((val) => /^\+234[789]\d{9}$/.test(val) || /^\+\d{10,15}$/.test(val) || /^0[789]\d{9}$/.test(val), {
       message: 'Please enter a valid Nigerian mobile phone number (e.g. 08012345678 or +2348012345678).',
     }),
-  tier: z.enum(['BASIC', 'PREMIUM'], {
-    message: 'Membership tier must be BASIC or PREMIUM.',
+  tier: z.enum(['BASIC', 'PREMIUM', 'DIAMOND'], {
+    message: 'Membership tier must be BASIC, PREMIUM, or DIAMOND.',
   }),
   email: z
     .string()

@@ -1,0 +1,396 @@
+/* ========================================================================== */
+/* PAYMENT MODAL STYLES (SPOTTER DESIGN SYSTEM)                              */
+/* ========================================================================== */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 23, 76, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal, 1000);
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 740px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-outline-variant, #d6e3ff);
+  border-radius: 8px;
+  box-shadow: var(--effect-hard-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 92vh;
+  animation: slideUp 0.18s ease-out;
+  font-family: var(--typography-body-large-font-family, var(--font-dm-sans, sans-serif));
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0.9;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Modal Header */
+.modalHeader {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-outline-variant, #d6e3ff);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modalTitle {
+  font-size: var(--typography-title-large-font-size, 20px);
+  font-weight: 700;
+  color: var(--color-on-background, #00174c);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.modalSubtitle {
+  font-size: var(--typography-body-small-font-size, 13px);
+  color: var(--color-tertiary, #4e5e82);
+  margin: 4px 0 0;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-secondary, #3e5ca2);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  color: var(--color-on-background, #00174c);
+  background: var(--color-surface-container, #ebf1ff);
+}
+
+/* Modal Body */
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Member summary banner */
+.memberPill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface-container-low, #f7f9ff);
+  border: 1px solid var(--color-outline-variant, #d6e3ff);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: var(--typography-body-small-font-size, 13px);
+}
+
+.memberPillName {
+  font-weight: 600;
+  color: var(--color-on-background, #00174c);
+}
+
+.memberPillNumber {
+  font-family: var(--font-dm-sans, -apple-system, sans-serif);
+  background: var(--color-primary-container, #ebf1ff);
+  color: var(--color-primary, #0044e3);
+  border: 1px solid var(--color-outline-variant, #d6e3ff);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Plan Selection Cards */
+.planOptionsTitle {
+  font-size: var(--typography-label-medium-font-size, 12px);
+  font-weight: 700;
+  color: var(--color-secondary, #3e5ca2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.planCard {
+  border: 2px solid var(--color-outline-variant, #d6e3ff);
+  border-radius: 6px;
+  padding: 16px 14px;
+  background: var(--color-surface, #ffffff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.planCard:hover {
+  border-color: var(--color-outline, #aec6ff);
+  background: var(--color-surface-container-low, #f7f9ff);
+}
+
+.planCardActive {
+  border-color: var(--color-primary, #0044e3);
+  background: var(--color-primary-container, #ebf1ff);
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.planCardDiamondActive {
+  border-color: var(--color-secondary, #3e5ca2);
+  background: var(--color-secondary-container, #dce3f2);
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.planCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.planName {
+  font-size: var(--typography-title-small-font-size, 14px);
+  font-weight: 700;
+  color: var(--color-on-background, #00174c);
+}
+
+.planBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--color-primary, #0044e3);
+  color: var(--color-on-primary, #ffffff);
+}
+
+.planBadgeDiamond {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--color-secondary, #3e5ca2);
+  color: var(--color-on-secondary, #ffffff);
+  border: 1px solid var(--color-on-secondary-container, #23457a);
+}
+
+.planPrice {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-on-background, #00174c);
+  margin-bottom: 6px;
+}
+
+.planPriceSmall {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-secondary, #3e5ca2);
+}
+
+.planDesc {
+  font-size: var(--typography-body-small-font-size, 12px);
+  color: var(--color-tertiary, #4e5e82);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Breakdown summary */
+.breakdownCard {
+  background: var(--color-surface-container-low, #f7f9ff);
+  border: 1px solid var(--color-outline-variant, #d6e3ff);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdownRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--typography-body-small-font-size, 13px);
+  color: var(--color-tertiary, #4e5e82);
+}
+
+.breakdownRowTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-on-background, #00174c);
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-outline, #aec6ff);
+  margin-top: 4px;
+}
+
+.expiryNotice {
+  font-size: 12px;
+  color: var(--color-on-primary-container, #0037b8);
+  background: var(--color-primary-container, #ebf1ff);
+  border: 1px solid var(--color-outline, #aec6ff);
+  border-radius: 4px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Security Trust Line */
+.trustBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-secondary, #3e5ca2);
+  background: var(--color-surface-container-low, #f7f9ff);
+  border-radius: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-outline-variant, #d6e3ff);
+}
+
+.trustShield {
+  color: var(--color-primary, #0044e3);
+  font-weight: bold;
+}
+
+/* Error / Waiting Alert */
+.alertBox {
+  font-size: 12.5px;
+  border-radius: 6px;
+  padding: 10px 14px;
+  line-height: 1.4;
+}
+
+.alertBoxWarning {
+  background: var(--color-tertiary-container, #dfe2ec);
+  border: 1px solid var(--color-outline, #aec6ff);
+  color: var(--color-on-tertiary-container, #0037b8);
+}
+
+.waitingSubtext {
+  font-size: 11.5px;
+  margin-top: 4px;
+  color: var(--color-secondary, #3e5ca2);
+}
+
+.alertBoxError {
+  background: var(--color-error-container, #ffedea);
+  border: 1px solid var(--color-error, #c00005);
+  color: var(--color-on-error-container, #930003);
+}
+
+/* Modal Footer */
+.modalFooter {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--color-outline-variant, #d6e3ff);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelBtn {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-outline, #aec6ff);
+  color: var(--color-on-background, #00174c);
+  padding: 9px 18px;
+  border-radius: 4px;
+  font-size: var(--typography-label-large-font-size, 14px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancelBtn:hover {
+  background: var(--color-surface-container-low, #f7f9ff);
+  border-color: var(--color-primary, #0044e3);
+}
+
+.payButton {
+  background: var(--color-primary, #0044e3);
+  color: var(--color-on-primary, #ffffff);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: var(--typography-label-large-font-size, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.payButton:hover:not(:disabled) {
+  background: var(--color-on-primary-container, #0037b8);
+}
+
+.payButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.simulateBtn {
+  background: var(--color-secondary, #3e5ca2);
+  color: var(--color-on-secondary, #ffffff);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.simulateBtn:hover:not(:disabled) {
+  background: var(--color-on-secondary-container, #23457a);
+}

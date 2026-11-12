@@ -242,7 +242,7 @@ describe('Database Authentication & Security Pipeline', () => {
       expect(data.user.staff.role).toBe('STAFF');
     });
 
-    it('authenticates demo member Chioma Adeyemi credentials', async () => {
+    it('rejects legacy unseeded demo member 1042 credentials without database fallback', async () => {
       const res = await loginHandler(
         createReq({
           identifier: '1042',
@@ -250,10 +250,8 @@ describe('Database Authentication & Security Pipeline', () => {
         })
       );
       const data = await res.json();
-      expect(res.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.user.type).toBe('member');
-      expect(data.user.member.fullName).toBe('Chioma Adeyemi');
+      expect(res.status).toBe(401);
+      expect(data.success).toBe(false);
     });
 
     it('authenticates a registered member using database scrypt password verification', async () => {

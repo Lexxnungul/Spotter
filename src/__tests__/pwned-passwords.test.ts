@@ -1,14 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import crypto from 'crypto';
 import { checkPwnedPassword } from '../lib/pwned-passwords';
 import { POST as registerHandler } from '../app/api/auth/register/route';
 import { NextRequest } from 'next/server';
 import { resetRateLimitStore } from '../lib/rate-limit';
+import { prisma } from '../lib/prisma';
 
 describe('Have I Been Pwned (HIBP) Breached Password Detection', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     resetRateLimitStore();
+  });
+
+  afterAll(async () => {
+    try {
+      await prisma.consentRecord.deleteMany({
+        where: { member: { memberNumber: '556688' } },
+      });
+      await prisma.member.deleteMany({
+        where: { memberNumber: '556688' },
+      });
+    } catch {}
   });
 
   describe('checkPwnedPassword k-Anonymity protocol', () => {

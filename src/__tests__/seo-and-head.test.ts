@@ -115,5 +115,15 @@ describe('Head & SEO Specifications', () => {
       expect(manifest.icons.length).toBeGreaterThan(0);
       expect(manifest.icons[0].src).toBe('/favicon.svg');
     });
+
+    it('public/favicon.ico exists with valid ICO header to prevent browser /favicon.ico 404', () => {
+      const icoPath = path.resolve(__dirname, '../../public/favicon.ico');
+      expect(fs.existsSync(icoPath)).toBe(true);
+      const buf = fs.readFileSync(icoPath);
+      expect(buf.length).toBeGreaterThan(22);
+      // ICO header: reserved=0 (2 bytes), type=1 (2 bytes)
+      expect(buf.readUInt16LE(0)).toBe(0);
+      expect(buf.readUInt16LE(2)).toBe(1);
+    });
   });
 });

@@ -97,39 +97,25 @@ export default function EmailVerificationBanner() {
       aria-label="Email verification notice"
       id="email-verification-banner"
     >
-      <div className={styles.bannerHeader}>
-        <div className={styles.badgeGroup}>
-          <span className={styles.alertBadge}>✉️ Action Required</span>
-        </div>
-        <button
-          type="button"
-          className={styles.dismissBtn}
-          onClick={() => setIsDismissed(true)}
-          title="Dismiss for now"
-          aria-label="Dismiss banner"
-        >
-          ✕
-        </button>
-      </div>
-
-      <h2 className={styles.bannerTitle}>Verify your email address</h2>
+      <h2 className={styles.bannerTitle}>Verify your email</h2>
       <p className={styles.bannerDescription}>
-        We sent a 6-digit confirmation code to{' '}
-        <span className={styles.bannerEmailHighlight}>{memberEmail}</span>. Enter it below to verify your account.
+        We sent a six digit code to <span className={styles.bannerEmailHighlight}>{memberEmail}</span>. Enter it below to verify your email.
       </p>
 
       <form onSubmit={handleVerifySubmit} className={styles.verifyForm}>
+        <label className={styles.codeLabel} htmlFor="input-verification-code">
+          Six digit code
+        </label>
         <div className={styles.inputRow}>
           <input
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={6}
-            placeholder="123456"
             className={styles.codeInput}
             value={code}
             onChange={handleCodeChange}
-            aria-label="6-digit verification code"
+            aria-label="Six digit code"
             id="input-verification-code"
             disabled={isSubmitting}
             autoComplete="one-time-code"
@@ -142,16 +128,6 @@ export default function EmailVerificationBanner() {
           >
             {isSubmitting ? 'Verifying...' : 'Verify'}
           </button>
-        </div>
-
-        {errorMsg && (
-          <div role="alert" className={styles.errorMessage} id="verification-error-msg">
-            {errorMsg}
-          </div>
-        )}
-
-        <div className={styles.secondaryRow}>
-          <span className={styles.cooldownText}>Didn&apos;t receive it?</span>
           <button
             type="button"
             className={styles.resendBtn}
@@ -162,10 +138,16 @@ export default function EmailVerificationBanner() {
             {isResending
               ? 'Sending...'
               : cooldownSeconds > 0
-              ? `Resend in ${cooldownSeconds}s`
-              : 'Resend code'}
+              ? `Send a new code (${cooldownSeconds}s)`
+              : 'Send a new code'}
           </button>
         </div>
+
+        {errorMsg && (
+          <div role="alert" className={styles.errorMessage} id="verification-error-msg">
+            {errorMsg}
+          </div>
+        )}
       </form>
     </div>
   );

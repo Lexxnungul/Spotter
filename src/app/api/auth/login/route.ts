@@ -223,69 +223,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Demo fallback check (e.g. Chioma Adeyemi seed data)
-      if (
-        (cleanId === 'chioma@example.com' || cleanId === '1042') &&
-        cleanPassword === 'password123'
-      ) {
-        return NextResponse.json({
-          success: true,
-          user: {
-            type: 'member',
-            member: {
-              id: 'mem_1042',
-              fullName: 'Chioma Adeyemi',
-              email: 'chioma@example.com',
-              memberNumber: '1042',
-              phone: '+234 802 345 6789',
-              tier: 'PREMIUM',
-              status: 'ACTIVE',
-              expiryDate: '28 October 2026',
-              daysTrained: 12,
-              balanceKobo: 0,
-              deviceToken: 'dev_tok_chioma_1042',
-              linkedAt: new Date().toISOString(),
-              consentedAt: new Date().toISOString(),
-              isEmailVerified: true,
-            },
-          },
-        });
-      }
-
       return NextResponse.json(
         { success: false, error: 'Invalid email, member number, or password.' },
         { status: 401 }
       );
     } catch (dbError: any) {
       console.error('[API Login Database Error]:', dbError);
-
-      // Check fallback demo member even if DB is temporarily unreachable
-      if (
-        (cleanId === 'chioma@example.com' || cleanId === '1042') &&
-        cleanPassword === 'password123'
-      ) {
-        return NextResponse.json({
-          success: true,
-          user: {
-            type: 'member',
-            member: {
-              id: 'mem_1042',
-              fullName: 'Chioma Adeyemi',
-              email: 'chioma@example.com',
-              memberNumber: '1042',
-              phone: '+234 802 345 6789',
-              tier: 'PREMIUM',
-              status: 'ACTIVE',
-              expiryDate: '28 October 2026',
-              daysTrained: 12,
-              balanceKobo: 0,
-              deviceToken: 'dev_tok_chioma_1042',
-              linkedAt: new Date().toISOString(),
-              consentedAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
 
       const isConnectionError =
         dbError?.code === 'P1001' ||
@@ -297,7 +240,7 @@ export async function POST(req: NextRequest) {
           {
             success: false,
             error:
-              'Database server unreachable. Please check your PostgreSQL connection at localhost:5432 or in .env.',
+              'Database server unreachable. Please check your database connection.',
             isDatabaseUnreachable: true,
           },
           { status: 503 }

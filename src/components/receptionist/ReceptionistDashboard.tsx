@@ -12,7 +12,7 @@ interface IssuedMember {
   phone: string;
   email?: string;
   memberNumber: string;
-  tier: 'BASIC' | 'PREMIUM';
+  tier: 'BASIC' | 'PREMIUM' | 'DIAMOND';
   status: string;
   expiryDate: string;
   openingBalanceKobo?: number;
@@ -33,7 +33,7 @@ export default function ReceptionistDashboard() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [tier, setTier] = useState<'BASIC' | 'PREMIUM'>('PREMIUM');
+  const [tier, setTier] = useState<'BASIC' | 'PREMIUM' | 'DIAMOND'>('PREMIUM');
   const [initialPaymentNaira, setInitialPaymentNaira] = useState('25000');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'POS' | 'PENDING'>('CASH');
   const [notes, setNotes] = useState('');
@@ -60,11 +60,13 @@ export default function ReceptionistDashboard() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Update initial price suggestion when tier toggles
-  const handleTierChange = (newTier: 'BASIC' | 'PREMIUM') => {
+  const handleTierChange = (newTier: 'BASIC' | 'PREMIUM' | 'DIAMOND') => {
     setTier(newTier);
-    if (newTier === 'PREMIUM' && initialPaymentNaira === '15000') {
+    if (newTier === 'DIAMOND') {
+      setInitialPaymentNaira('45000');
+    } else if (newTier === 'PREMIUM') {
       setInitialPaymentNaira('25000');
-    } else if (newTier === 'BASIC' && initialPaymentNaira === '25000') {
+    } else if (newTier === 'BASIC') {
       setInitialPaymentNaira('15000');
     }
   };
@@ -570,7 +572,7 @@ export default function ReceptionistDashboard() {
                   >
                     <div className={styles.tierName}>
                       <span>Basic Tier</span>
-                      {tier === 'BASIC' && <span style={{ color: '#38bdf8' }}>✓</span>}
+                      {tier === 'BASIC' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
                     </div>
                     <span className={styles.tierPrice}>₦15,000 / month</span>
                     <span className={styles.tierDesc}>
@@ -588,11 +590,29 @@ export default function ReceptionistDashboard() {
                   >
                     <div className={styles.tierName}>
                       <span>Premium Tier</span>
-                      {tier === 'PREMIUM' && <span style={{ color: '#38bdf8' }}>✓</span>}
+                      {tier === 'PREMIUM' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
                     </div>
                     <span className={styles.tierPrice}>₦25,000 / month</span>
                     <span className={styles.tierDesc}>
                       All Basic perks + 1 monthly guest pass + custom training plans.
+                    </span>
+                  </div>
+
+                  <div
+                    className={`${styles.tierCard} ${tier === 'DIAMOND' ? styles.tierCardActive : ''}`}
+                    onClick={() => handleTierChange('DIAMOND')}
+                    role="radio"
+                    aria-checked={tier === 'DIAMOND'}
+                    tabIndex={0}
+                    id="tier-option-diamond"
+                  >
+                    <div className={styles.tierName}>
+                      <span>Diamond VIP</span>
+                      {tier === 'DIAMOND' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
+                    </div>
+                    <span className={styles.tierPrice}>₦45,000 / month</span>
+                    <span className={styles.tierDesc}>
+                      VIP all-hours access + coach consultations + executive locker.
                     </span>
                   </div>
                 </div>
@@ -684,11 +704,15 @@ export default function ReceptionistDashboard() {
                 <div className={styles.membershipSlip} id="printable-membership-slip">
                   <div className={styles.slipHeader}>
                     <div className={styles.slipGymLogo}>
-                      <span style={{ color: '#38bdf8' }}>●</span> SPOTTER GYM &bull; LAGOS
+                      <span style={{ color: 'var(--color-primary, #0044e3)' }}>●</span> SPOTTER GYM &bull; LAGOS
                     </div>
                     <span
                       className={`${styles.slipTierBadge} ${
-                        newlyIssuedMember.tier === 'BASIC' ? styles.slipTierBadgeBasic : ''
+                        newlyIssuedMember.tier === 'DIAMOND'
+                          ? styles.slipTierBadgeDiamond
+                          : newlyIssuedMember.tier === 'PREMIUM'
+                          ? styles.slipTierBadgePremium
+                          : styles.slipTierBadgeBasic
                       }`}
                     >
                       {newlyIssuedMember.tier} MEMBERSHIP
@@ -862,7 +886,7 @@ export default function ReceptionistDashboard() {
                 ) : (
                   filteredIssuances.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ fontWeight: 600, color: '#ffffff' }}>{item.fullName}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--color-on-background, #00174c)' }}>{item.fullName}</td>
                       <td>
                         <span className={styles.numberPill}>{item.memberNumber}</span>
                       </td>
@@ -870,7 +894,11 @@ export default function ReceptionistDashboard() {
                       <td>
                         <span
                           className={`${styles.slipTierBadge} ${
-                            item.tier === 'BASIC' ? styles.slipTierBadgeBasic : ''
+                            item.tier === 'DIAMOND'
+                              ? styles.slipTierBadgeDiamond
+                              : item.tier === 'PREMIUM'
+                              ? styles.slipTierBadgePremium
+                              : styles.slipTierBadgeBasic
                           }`}
                         >
                           {item.tier}

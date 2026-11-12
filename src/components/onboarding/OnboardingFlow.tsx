@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, DEMO_MEMBER } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import styles from './OnboardingFlow.module.css';
 import OnboardingIllustration from './OnboardingIllustration';
 
@@ -17,16 +17,18 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const totalSteps = 4;
 
-  // Derive member details with demo fallback
-  const member = user?.type === 'member' ? user.member : DEMO_MEMBER;
-  const memberName = member.fullName || 'Gym Member';
-  const memberNumber = member.memberNumber || '849201';
-  const tier = member.tier || 'BASIC';
-  const memberId = member.id || 'demo_member';
+  // Derive member details strictly from authenticated member session
+  const member = user?.type === 'member' ? user.member : null;
+  const memberName = member?.fullName || 'Member';
+  const memberNumber = member?.memberNumber || '------';
+  const tier = member?.tier || 'BASIC';
+  const memberId = member?.id || '';
 
   const handleFinish = () => {
     try {
-      localStorage.setItem(`spotter_onboarding_completed_${memberId}`, 'true');
+      if (memberId) {
+        localStorage.setItem(`spotter_onboarding_completed_${memberId}`, 'true');
+      }
       localStorage.setItem('spotter_onboarding_completed', 'true');
     } catch {}
 
