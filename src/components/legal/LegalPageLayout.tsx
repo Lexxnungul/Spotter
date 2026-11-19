@@ -26,45 +26,47 @@ export default function LegalPageLayout({
     <div className={styles.pageContainer}>
       {/* Sticky Header */}
       <header className={styles.header}>
-        <button
-          type="button"
-          onClick={onBackToHome}
-          className={styles.brandButton}
-          aria-label="Spotter Home"
-        >
-          <div className={styles.brandLogo}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 32 32"
-              width="32"
-              height="32"
-              aria-hidden="true"
-            >
-              <rect width="32" height="32" rx="4" fill="#0044e3" />
-              <text
-                x="16"
-                y="23"
-                fontFamily="system-ui, -apple-system, sans-serif"
-                fontSize="20"
-                fontWeight="700"
-                fill="#ffffff"
-                textAnchor="middle"
+        <div className={styles.headerInner}>
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className={styles.brandButton}
+            aria-label="Spotter Home"
+          >
+            <div className={styles.brandLogo}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 32 32"
+                width="32"
+                height="32"
+                aria-hidden="true"
               >
-                S
-              </text>
-            </svg>
-          </div>
-          <span className={styles.brandTitle}>Spotter</span>
-        </button>
+                <rect width="32" height="32" rx="4" fill="#0044e3" />
+                <text
+                  x="16"
+                  y="23"
+                  fontFamily="system-ui, -apple-system, sans-serif"
+                  fontSize="20"
+                  fontWeight="700"
+                  fill="#ffffff"
+                  textAnchor="middle"
+                >
+                  S
+                </text>
+              </svg>
+            </div>
+            <span className={styles.brandTitle}>Spotter</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={onBackToHome}
-          className={styles.backButton}
-          id="btn-back-home"
-        >
-          &larr; Back to Home
-        </button>
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className={styles.backButton}
+            id="btn-back-home"
+          >
+            &larr; Back to Home
+          </button>
+        </div>
       </header>
 
       {/* Main Legal Document Content */}

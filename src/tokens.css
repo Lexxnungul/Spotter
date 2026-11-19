@@ -117,6 +117,8 @@
   --primitives-color-palettes-error-new-group-error98: #fff8f7;
   --primitives-color-palettes-error-new-group-error99: #fffbff;
   --primitives-color-palettes-error-new-group-error100: #ffffff;
+  --primitives-color-palettes-success-success40: #2e6c31;
+  --primitives-color-palettes-success-success90: #d1ffc9;
 
   /* ------------------------------------------------------------------------ */
   /* Color Roles (Semantic UI Tokens - USE THESE DIRECTLY FOR UI COMPONENTS)  */
@@ -153,6 +155,12 @@
   --color-error-container: var(--color-roles-error-container);
   --color-roles-on-error-container: var(--primitives-color-palettes-error-new-group-error30);
   --color-on-error-container: var(--color-roles-on-error-container);
+  --color-roles-success: var(--primitives-color-palettes-success-success40);
+  --color-success: var(--color-roles-success);
+  --color-roles-success-container: var(--primitives-color-palettes-success-success90);
+  --color-success-container: var(--color-roles-success-container);
+  --color-roles-on-success-container: var(--primitives-color-palettes-success-success40);
+  --color-on-success-container: var(--color-roles-on-success-container);
   --color-roles-surface: var(--primitives-color-palettes-primary-primary100);
   --color-surface: var(--color-roles-surface);
   --color-roles-surface-variant: var(--primitives-color-palettes-primary-primary95);

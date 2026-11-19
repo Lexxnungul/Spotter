@@ -183,6 +183,9 @@ describe('Spotter Payment Pipeline & Flutterwave Integration', () => {
 
     it('GET /api/payment/status returns isNewMember=true and expiryFormatted="Not Subscribed" for members with no payments', async () => {
       const newMemberNumber = '998877';
+      await prisma.member.deleteMany({
+        where: { OR: [{ memberNumber: newMemberNumber }, { email: 'new.member.test@example.com' }] },
+      });
       const newMember = await prisma.member.create({
         data: {
           fullName: 'New Member Test',

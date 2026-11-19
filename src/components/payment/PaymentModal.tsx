@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { X, CalendarDays, ShieldCheck } from 'lucide-react';
 import styles from './PaymentModal.module.css';
 
 interface PaymentModalProps {
@@ -342,7 +343,7 @@ export default function PaymentModal({
             aria-label="Close modal"
             id="btn-close-payment-modal"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -479,7 +480,7 @@ export default function PaymentModal({
 
           {/* Expiry / Activation notice */}
           <div className={styles.expiryNotice}>
-            <span>🗓</span>
+            <CalendarDays size={16} />
             <span>
               {isNewMember ? 'Activates' : 'Extends'} access through{' '}
               <strong>{computeNewExpiry()}</strong>
@@ -488,7 +489,7 @@ export default function PaymentModal({
 
           {/* Trust Banner */}
           <div className={styles.trustBanner}>
-            <span className={styles.trustShield}>✓</span>
+            <ShieldCheck size={16} className={styles.trustShield} />
             <span>Secured by Flutterwave • Cards, Bank Transfer & USSD accepted</span>
           </div>
         </div>

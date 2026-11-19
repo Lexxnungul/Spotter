@@ -245,6 +245,9 @@
   cursor: pointer;
   text-transform: uppercase;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .renewLinkBtn:hover {
@@ -315,6 +318,12 @@
   flex-wrap: wrap;
 }
 
+.paymentAlertSuccess strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .alertActionRow {
   display: flex;
   align-items: center;
@@ -345,6 +354,9 @@
   color: var(--color-secondary, #3e5ca2);
   cursor: pointer;
   padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Payment History Drawer / Panel */
@@ -411,14 +423,13 @@
 }
 
 .statusSuccessBadge {
-  background: var(--color-primary-container, #ebf1ff);
-  color: var(--color-on-primary-container, #0037b8);
-  border: 1px solid var(--color-outline, #aec6ff);
+  background: var(--color-success-container, #d1ffc9);
+  color: var(--color-on-success-container, #2e6c31);
+  border: none;
   font-size: 10.5px;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 3px;
-  text-transform: uppercase;
 }
 
 .statusPendingBadge {
@@ -429,7 +440,6 @@
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 3px;
-  text-transform: uppercase;
 }
 
 .receiptMiniBtn {
@@ -581,6 +591,9 @@
   font-size: 14px;
   padding: 2px 6px;
   border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeAnswerBtn:hover {

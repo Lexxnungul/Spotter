@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { TriangleAlert, X, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../components/auth/AuthModal.module.css';
 
-export default function AuthPage() {
+export default function AuthPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const router = useRouter();
   const {
     loginWithCredentials,
@@ -13,37 +18,37 @@ export default function AuthPage() {
     logout,
   } = useAuth();
 
-  const [mode, setMode] = useState<'create' | 'login'>('create');
-  const [isStaffMode, setIsStaffMode] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const getParam = (key: string): string | null => {
+    const value = searchParams?.[key];
+    if (Array.isArray(value)) return value[0] ?? null;
+    return value ?? null;
+  };
+
+  const modeParam = getParam('mode');
+  const errorParam = getParam('error');
+  const redirectParam = getParam('redirect');
+  const isStaffRequest =
+    errorParam === 'staff_required' ||
+    errorParam === 'invalid_session' ||
+    Boolean(redirectParam?.includes('/receptionist'));
+  const redirectUrl = redirectParam || '/receptionist';
+
+  const [mode, setMode] = useState<'create' | 'login'>(() => {
+    if (isStaffRequest) return 'login';
+    return modeParam === 'login' ? 'login' : 'create';
+  });
+  const [isStaffMode, setIsStaffMode] = useState<boolean>(isStaffRequest);
+  const [errorMsg, setErrorMsg] = useState<string | null>(() => {
+    if (errorParam === 'staff_required') {
+      return 'Front-desk staff credentials required to access the receptionist terminal.';
+    }
+    if (errorParam === 'invalid_session') {
+      return 'Staff session expired. Please sign in again.';
+    }
+    return null;
+  });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-
-  // Safely read query parameter on client mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const modeParam = params.get('mode');
-      if (modeParam === 'login' || modeParam === 'create') {
-        setMode(modeParam);
-      }
-      const redirectParam = params.get('redirect');
-      const errorParam = params.get('error');
-      if (
-        errorParam === 'staff_required' ||
-        errorParam === 'invalid_session' ||
-        redirectParam?.includes('/receptionist')
-      ) {
-        setIsStaffMode(true);
-        setMode('login');
-      }
-      if (errorParam === 'staff_required') {
-        setErrorMsg('Front-desk staff credentials required to access the receptionist terminal.');
-      } else if (errorParam === 'invalid_session') {
-        setErrorMsg('Staff session expired. Please sign in again.');
-      }
-    }
-  }, []);
 
   // Set document title
   useEffect(() => {
@@ -238,8 +243,6 @@ export default function AuthPage() {
       setErrorMsg(res.error || 'Invalid credentials.');
     } else {
       if (res.user?.type === 'staff') {
-        const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const redirectUrl = params?.get('redirect') || '/receptionist';
         router.push(redirectUrl);
       } else {
         router.push('/member');
@@ -263,7 +266,7 @@ export default function AuthPage() {
             onClick={closePage}
             aria-label="Return to home page"
           >
-            ✕
+            <X size={18} />
           </button>
 
           <div className={styles.badge}>{isStaffMode ? 'SPOTTER DESK' : 'SPOTTER'}</div>
@@ -280,7 +283,7 @@ export default function AuthPage() {
             {mode === 'create'
               ? 'Link your gym card to activate your personal Spotter portal.'
               : isStaffMode
-              ? 'Front-desk staff portal. Sign in to access the receptionist intake terminal.'
+              ? 'Sign in to access the receptionist intake terminal.'
               : 'Access your gym check-in code, attendance records, and balance.'}
           </p>
         </div>
@@ -323,7 +326,7 @@ export default function AuthPage() {
                   required
                 />
                 {createErrors.fullName && (
-                  <span id="error-input-full-name" className={styles.fieldError} role="alert">
+                  <span id="error-input-full-name" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.fullName}
                   </span>
                 )}
@@ -353,7 +356,7 @@ export default function AuthPage() {
                   required
                 />
                 {createErrors.email && (
-                  <span id="error-input-email-address" className={styles.fieldError} role="alert">
+                  <span id="error-input-email-address" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.email}
                   </span>
                 )}
@@ -399,7 +402,7 @@ export default function AuthPage() {
                   required
                 />
                 {createErrors.memberNumber && (
-                  <span id="error-input-member-number" className={styles.fieldError} role="alert">
+                  <span id="error-input-member-number" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.memberNumber}
                   </span>
                 )}
@@ -450,7 +453,7 @@ export default function AuthPage() {
                   </button>
                 </div>
                 {createErrors.password && (
-                  <span id="error-input-create-password" className={styles.fieldError} role="alert">
+                  <span id="error-input-create-password" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}
@@ -489,7 +492,7 @@ export default function AuthPage() {
                 </span>
               </label>
               {consentError && (
-                <span id="error-consent" className={styles.fieldError} role="alert">
+                <span id="error-consent" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                   Please accept the terms and conditions to continue.
                 </span>
               )}
@@ -538,7 +541,7 @@ export default function AuthPage() {
                   required
                 />
                 {loginErrors.loginIdentifier && (
-                  <span id="error-input-login-id" className={styles.fieldError} role="alert">
+                  <span id="error-input-login-id" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}
@@ -593,7 +596,7 @@ export default function AuthPage() {
                   </button>
                 </div>
                 {loginErrors.loginPassword && (
-                  <span id="error-input-login-password" className={styles.fieldError} role="alert">
+                  <span id="error-input-login-password" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}
@@ -643,7 +646,7 @@ export default function AuthPage() {
                   transition: 'all 0.2s ease',
                 }}
               >
-                ⚡ Quick Demo: Log In as Chioma Okeke (Desk Staff)
+                <Zap size={16} /> Quick Demo: Log In as Chioma Okeke (Desk Staff)
               </button>
             </form>
           )}
@@ -668,6 +671,8 @@ export default function AuthPage() {
                 Login to you account
               </button>
             </>
+          ) : isStaffMode ? (
+            <span>Authorized front-desk staff only.</span>
           ) : (
             <>
               New to Spotter?{' '}

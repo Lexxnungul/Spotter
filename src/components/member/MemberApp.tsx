@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowRight, Check, CircleCheck, CreditCard, ReceiptText, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import EmailVerificationBanner from './EmailVerificationBanner';
 import PaymentModal from '../payment/PaymentModal';
@@ -27,6 +28,11 @@ function formatTierLabel(tier?: string | null): 'Basic' | 'Premium' | 'Diamond' 
   if (tier === 'DIAMOND') return 'Diamond';
   if (tier === 'PREMIUM') return 'Premium';
   return 'Basic';
+}
+
+function formatLabel(value?: string | null): string {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 // 8 Primary Quick Questions from the Target Design
@@ -672,7 +678,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                   title={isNewMember ? 'Choose a subscription plan' : 'Renew your subscription'}
                   id="btn-renew-expiry-card"
                 >
-                  {isNewMember ? 'Choose Plan ➔' : 'Renew ➔'}
+                  {isNewMember ? 'Choose Plan' : 'Renew'} <ArrowRight size={13} />
                 </button>
               </div>
             </div>
@@ -711,7 +717,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               onClick={() => handleActionClick('Check in')}
               id="btn-check-in"
             >
-              <span>✓</span> Check in
+              <Check size={16} /> Check in
             </button>
             <button
               type="button"
@@ -719,7 +725,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               onClick={() => handleActionClick('Pay')}
               id="btn-pay"
             >
-              <span>💳</span> {isNewMember ? 'Choose Subscription Plan' : 'Pay Subscription'}
+              <CreditCard size={16} /> {isNewMember ? 'Choose Subscription Plan' : 'Pay Subscription'}
             </button>
             <button
               type="button"
@@ -736,7 +742,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               id="btn-payment-history"
               title="View previous payments and receipts"
             >
-              <span>📄</span> {showHistory ? 'Hide Receipts' : 'Receipts & History'}
+              <ReceiptText size={16} /> {showHistory ? 'Hide Receipts' : 'Receipts & History'}
               {paymentHistory.length > 0 && ` (${paymentHistory.length})`}
             </button>
           </nav>
@@ -756,7 +762,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                     onClick={() => setPaymentStatusAlert(null)}
                     aria-label="Dismiss payment status notice"
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
               )}
@@ -764,7 +770,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               {paymentStatusAlert.type === 'success' && (
                 <div className={styles.paymentAlertSuccess} role="alert">
                   <div>
-                    <strong>✓ {paymentStatusAlert.message}</strong>
+                    <strong><CircleCheck size={15} /> {paymentStatusAlert.message}</strong>
                   </div>
                   <div className={styles.alertActionRow}>
                     {paymentStatusAlert.receipt && (
@@ -786,7 +792,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                       onClick={() => setPaymentStatusAlert(null)}
                       aria-label="Dismiss success notice"
                     >
-                      ✕
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
@@ -833,10 +839,10 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                           <td>{item.dateSpelledOut}</td>
                           <td>{item.purpose}</td>
                           <td><strong>{item.amountNaira}</strong></td>
-                          <td>{item.method}</td>
+                          <td>{formatLabel(item.method)}</td>
                           <td>
                             <span className={item.status === 'SUCCESS' ? styles.statusSuccessBadge : styles.statusPendingBadge}>
-                              {item.status}
+                              {formatLabel(item.status)}
                             </span>
                           </td>
                           <td>
@@ -881,7 +887,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                   onClick={() => setActiveCard(null)}
                   aria-label="Close answer card"
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
               <p className={styles.answerLine}>{activeCard.answer}</p>

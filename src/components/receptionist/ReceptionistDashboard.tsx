@@ -1,9 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  ShieldAlert,
+  ClipboardList,
+  TriangleAlert,
+  CircleCheck,
+  CircleDashed,
+  Check,
+  LockKeyhole,
+  Lock,
+  Ticket,
+  Circle,
+  Smartphone,
+  Copy,
+  Printer,
+  FolderOpen,
+  SquareArrowUpRightExit,
+  Search,
+  Scale,
+  FileText,
+  House,
+  UserRound,
+  LogOut,
+  X,
+  Mail,
+  Phone,
+  CalendarDays,
+  Wallet,
+  Clock,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatMemberNumberDisplay } from '../../lib/member-number';
+import { fuzzyMatch } from '../../lib/fuzzy-search';
 import styles from './ReceptionistDashboard.module.css';
 
 interface IssuedMember {
@@ -18,11 +48,32 @@ interface IssuedMember {
   openingBalanceKobo?: number;
   createdAt: string;
   isClaimed: boolean;
+  isEmailVerified?: boolean;
   issuedBy?: {
     id: string;
     fullName: string;
     role: string;
   };
+}
+
+function formatIssuedDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatAccountStatus(status?: string): string {
+  if (!status) return 'Unknown';
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+}
+
+function formatNaira(kobo?: number): string {
+  if (kobo === undefined || kobo === null) return '—';
+  return `₦${(kobo / 100).toLocaleString('en-NG')}`;
 }
 
 export default function ReceptionistDashboard() {
@@ -52,12 +103,59 @@ export default function ReceptionistDashboard() {
   const [recentIssuances, setRecentIssuances] = useState<IssuedMember[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const [ledgerPageSize, setLedgerPageSize] = useState(10);
+
+  // Member Detail Modal
+  const [selectedMember, setSelectedMember] = useState<IssuedMember | null>(null);
 
   // Staff Login Form (for unauthenticated gate)
   const [gateEmail, setGateEmail] = useState('');
   const [gatePassword, setGatePassword] = useState('');
   const [gateError, setGateError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Staff Avatar Dropdown Menu State
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
+        setIsAvatarMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsAvatarMenuOpen(false);
+      }
+    }
+    if (isAvatarMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAvatarMenuOpen]);
+
+  // Close member detail modal on Escape
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedMember(null);
+      }
+    }
+    if (selectedMember) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [selectedMember]);
 
   // Update initial price suggestion when tier toggles
   const handleTierChange = (newTier: 'BASIC' | 'PREMIUM' | 'DIAMOND') => {
@@ -99,6 +197,11 @@ export default function ReceptionistDashboard() {
       loadRecentIssuances();
     }
   }, [user, loadRecentIssuances]);
+
+  // Reset to first page whenever the filter or page size changes
+  useEffect(() => {
+    setLedgerPage(1);
+  }, [searchQuery, ledgerPageSize]);
 
   // Real-time phone check on blur or 11 digits
   const checkExistingPhone = async (val: string) => {
@@ -342,7 +445,7 @@ export default function ReceptionistDashboard() {
       <div className={styles.forbiddenContainer}>
         <div className={styles.forbiddenCard}>
           <div className={styles.forbiddenIcon} aria-hidden="true">
-            🛡️
+            <ShieldAlert size={30} />
           </div>
           <span className={styles.slipTierBadge} style={{ background: '#ef4444' }}>
             403 - FORBIDDEN ACCESS
@@ -381,16 +484,29 @@ export default function ReceptionistDashboard() {
     );
   }
 
-  // Filter recent issuances by query
-  const filteredIssuances = recentIssuances.filter((m) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      m.fullName.toLowerCase().includes(q) ||
-      m.phone.includes(q) ||
-      m.memberNumber.includes(q)
-    );
-  });
+  // Filter recent issuances by query with typo-tolerant fuzzy matching, most relevant first
+  const trimmedSearchQuery = searchQuery.trim();
+  const filteredIssuances = recentIssuances
+    .map((m) => ({
+      member: m,
+      score: trimmedSearchQuery
+        ? fuzzyMatch(trimmedSearchQuery, [m.fullName, m.phone, m.memberNumber])
+        : 1,
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => {
+      if (trimmedSearchQuery && b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return new Date(b.member.createdAt).getTime() - new Date(a.member.createdAt).getTime();
+    })
+    .map((entry) => entry.member);
+
+  const totalPages = Math.max(1, Math.ceil(filteredIssuances.length / ledgerPageSize));
+  const currentPage = Math.min(ledgerPage, totalPages);
+  const pageStart = (currentPage - 1) * ledgerPageSize;
+  const pageEnd = Math.min(pageStart + ledgerPageSize, filteredIssuances.length);
+  const paginatedIssuances = filteredIssuances.slice(pageStart, pageStart + ledgerPageSize);
 
   return (
     <div className={styles.container}>
@@ -400,74 +516,95 @@ export default function ReceptionistDashboard() {
           <div className={styles.brandArea}>
             <div className={styles.logoBadge}>SPOTTER DESK</div>
             <h1 className={styles.terminalTitle}>
-              Front Desk Terminal <span className={styles.terminalTag}>Lagos HQ</span>
+              Receptionist Terminal
             </h1>
           </div>
 
-          <div className={styles.receptionistBadge}>
-            <div className={styles.staffAvatar} aria-hidden="true">
-              {user.staff.fullName[0]}
-            </div>
-            <div className={styles.staffInfo}>
-              <span className={styles.staffName}>{user.staff.fullName}</span>
-              <span className={styles.staffRole}>
-                <span className={styles.onlinePulse} />
-                {user.staff.role === 'OWNER' ? 'Gym Owner' : 'Desk Receptionist'} • Active Shift
+          <div className={styles.headerActions} ref={avatarMenuRef}>
+            <button
+              type="button"
+              className={styles.avatarButton}
+              onClick={() => setIsAvatarMenuOpen((prev) => !prev)}
+              aria-label="Staff account menu"
+              aria-expanded={isAvatarMenuOpen}
+              aria-haspopup="true"
+              id="btn-staff-avatar"
+            >
+              <span className={styles.avatarInitial} aria-hidden="true">
+                {user.staff.fullName[0]?.toUpperCase() || 'S'}
               </span>
-            </div>
-          </div>
+            </button>
 
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => router.push('/')}
-              id="btn-go-home"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => router.push('/member')}
-              id="btn-preview-member-app"
-            >
-              Member View
-            </button>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => {
-                logout();
-                router.push('/');
-              }}
-              id="btn-staff-logout"
-            >
-              End Duty
-            </button>
+            {isAvatarMenuOpen && (
+              <div className={styles.avatarDropdown} id="staff-avatar-dropdown" role="menu">
+                <div className={styles.dropdownStaffSection}>
+                  <div className={styles.dropdownStaffAvatar} aria-hidden="true">
+                    {user.staff.fullName[0]?.toUpperCase() || 'S'}
+                  </div>
+                  <div className={styles.dropdownStaffInfo}>
+                    <span className={styles.dropdownStaffName}>{user.staff.fullName}</span>
+                    <span className={styles.dropdownStaffRole}>
+                      <span className={styles.onlinePulse} />
+                      {user.staff.role === 'OWNER' ? 'Gym Owner' : 'Desk Receptionist'} • Active Shift
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.dropdownDivider} />
+
+                <div className={styles.dropdownMenuItems}>
+                  <button
+                    type="button"
+                    className={styles.dropdownMenuItem}
+                    onClick={() => {
+                      setIsAvatarMenuOpen(false);
+                      router.push('/');
+                    }}
+                    id="btn-go-home"
+                    role="menuitem"
+                  >
+                    <House size={16} aria-hidden="true" />
+                    <span>Home</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.dropdownMenuItem}
+                    onClick={() => {
+                      setIsAvatarMenuOpen(false);
+                      router.push('/member');
+                    }}
+                    id="btn-preview-member-app"
+                    role="menuitem"
+                  >
+                    <UserRound size={16} aria-hidden="true" />
+                    <span>Member view</span>
+                  </button>
+
+                  <div className={styles.dropdownDivider} />
+
+                  <button
+                    type="button"
+                    className={`${styles.dropdownMenuItem} ${styles.dropdownMenuItemDanger}`}
+                    onClick={() => {
+                      setIsAvatarMenuOpen(false);
+                      logout();
+                      router.push('/');
+                    }}
+                    id="btn-staff-logout"
+                    role="menuitem"
+                  >
+                    <LogOut size={16} aria-hidden="true" />
+                    <span>End Duty</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* 2. Security Ribbon */}
-      <div className={styles.securityRibbon}>
-        <div className={styles.securityRibbonInner}>
-          <div className={styles.securityItem}>
-            <span className={styles.securityIcon}>🔒</span>
-            <span>Security Policy: Row-Level Isolation & CSPRNG Number Generation</span>
-          </div>
-          <div className={styles.securityItem}>
-            <span className={styles.securityIcon}>⚖️</span>
-            <span>Compliance: NDPA 2023 Consent Flow Protected</span>
-          </div>
-          <div className={styles.securityItem}>
-            <span className={styles.securityIcon}>📝</span>
-            <span>Actor Audit: All issued numbers logged under ID {user.staff.id}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Main Dashboard Body */}
+      {/* 2. Main Dashboard Body */}
       <main className={styles.main}>
         <div className={styles.gridTwoCol}>
           {/* Left Column: Intending Member Intake Form */}
@@ -475,7 +612,7 @@ export default function ReceptionistDashboard() {
             <div className={styles.cardHeader}>
               <div>
                 <h2 className={styles.cardTitle} id="form-heading">
-                  <span>📋</span> Intending Member Intake
+                  <ClipboardList size={18} /> Intending Member Intake
                 </h2>
                 <p className={styles.cardSubtitle}>
                   Issue a unique, cryptographically random 6-digit member number for a walk-in gym member.
@@ -485,13 +622,13 @@ export default function ReceptionistDashboard() {
 
             {errorMessage && (
               <div className={styles.errorText} role="alert" id="intake-error-banner">
-                ⚠️ {errorMessage}
+                <TriangleAlert size={14} /> {errorMessage}
               </div>
             )}
 
             {successMessage && (
               <div className={styles.successHelper} role="status" id="intake-success-banner">
-                ✅ {successMessage}
+                <CircleCheck size={14} /> {successMessage}
               </div>
             )}
 
@@ -535,7 +672,7 @@ export default function ReceptionistDashboard() {
                     className={phoneCheckResult.exists ? styles.errorText : styles.successHelper}
                     id="phone-check-indicator"
                   >
-                    {phoneCheckResult.exists ? '⚠️ ' : '✓ '}
+                    {phoneCheckResult.exists ? <TriangleAlert size={13} /> : <Check size={13} />}
                     {phoneCheckResult.message}
                   </span>
                 )}
@@ -572,7 +709,7 @@ export default function ReceptionistDashboard() {
                   >
                     <div className={styles.tierName}>
                       <span>Basic Tier</span>
-                      {tier === 'BASIC' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
+                      {tier === 'BASIC' && <Check size={16} style={{ color: 'var(--color-primary, #0044e3)' }} />}
                     </div>
                     <span className={styles.tierPrice}>₦15,000 / month</span>
                     <span className={styles.tierDesc}>
@@ -590,7 +727,7 @@ export default function ReceptionistDashboard() {
                   >
                     <div className={styles.tierName}>
                       <span>Premium Tier</span>
-                      {tier === 'PREMIUM' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
+                      {tier === 'PREMIUM' && <Check size={16} style={{ color: 'var(--color-primary, #0044e3)' }} />}
                     </div>
                     <span className={styles.tierPrice}>₦25,000 / month</span>
                     <span className={styles.tierDesc}>
@@ -608,7 +745,7 @@ export default function ReceptionistDashboard() {
                   >
                     <div className={styles.tierName}>
                       <span>Diamond VIP</span>
-                      {tier === 'DIAMOND' && <span style={{ color: 'var(--color-primary, #0044e3)' }}>✓</span>}
+                      {tier === 'DIAMOND' && <Check size={16} style={{ color: 'var(--color-primary, #0044e3)' }} />}
                     </div>
                     <span className={styles.tierPrice}>₦45,000 / month</span>
                     <span className={styles.tierDesc}>
@@ -678,7 +815,7 @@ export default function ReceptionistDashboard() {
                   <span>Generating Secure Member Number...</span>
                 ) : (
                   <>
-                    <span>🔐</span> Generate & Issue 6-Digit Member Number
+                    <LockKeyhole size={16} /> Generate & Issue 6-Digit Member Number
                   </>
                 )}
               </button>
@@ -690,7 +827,7 @@ export default function ReceptionistDashboard() {
             <div className={styles.cardHeader}>
               <div>
                 <h2 className={styles.cardTitle} id="preview-heading">
-                  <span>🎫</span> Membership Card Issuance
+                  <Ticket size={18} /> Membership Card Issuance
                 </h2>
                 <p className={styles.cardSubtitle}>
                   Print physical slip or copy 6-digit member number for the intending member.
@@ -704,7 +841,7 @@ export default function ReceptionistDashboard() {
                 <div className={styles.membershipSlip} id="printable-membership-slip">
                   <div className={styles.slipHeader}>
                     <div className={styles.slipGymLogo}>
-                      <span style={{ color: 'var(--color-primary, #0044e3)' }}>●</span> SPOTTER GYM &bull; LAGOS
+                      <Circle size={8} style={{ color: 'var(--color-primary, #0044e3)', fill: 'var(--color-primary, #0044e3)' }} /> SPOTTER GYM &bull; LAGOS
                     </div>
                     <span
                       className={`${styles.slipTierBadge} ${
@@ -738,7 +875,7 @@ export default function ReceptionistDashboard() {
                 {/* Member Portal Activation Instructions */}
                 <div className={styles.activationInstructions}>
                   <h4 className={styles.instructionsTitle}>
-                    <span>📱</span> Member Next Steps:
+                    <Smartphone size={15} /> Member Next Steps:
                   </h4>
                   <ol className={styles.stepList}>
                     <li>
@@ -762,7 +899,15 @@ export default function ReceptionistDashboard() {
                     onClick={() => handleCopyNumber(newlyIssuedMember.memberNumber)}
                     id="btn-copy-member-number"
                   >
-                    {copiedNumber === newlyIssuedMember.memberNumber ? '✓ Copied!' : '📋 Copy Member Number'}
+                    {copiedNumber === newlyIssuedMember.memberNumber ? (
+                      <>
+                        <Check size={14} /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} /> Copy Member Number
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -770,7 +915,7 @@ export default function ReceptionistDashboard() {
                     onClick={handlePrintSlip}
                     id="btn-print-member-slip"
                   >
-                    🖨️ Print Card Slip
+                    <Printer size={14} /> Print Card Slip
                   </button>
                 </div>
 
@@ -834,17 +979,31 @@ export default function ReceptionistDashboard() {
         <section className={styles.ledgerSection} aria-labelledby="ledger-heading">
           <div className={styles.ledgerHeader}>
             <div>
-              <h2 className={styles.cardTitle} id="ledger-heading">
-                <span>🗂️</span> Recent Member Numbers Issued
-              </h2>
-              <p className={styles.cardSubtitle}>
-                Audit record of numbers generated during your shift.
-              </p>
+              <div className={styles.ledgerTitleRow}>
+                <h2 className={styles.cardTitle} id="ledger-heading">
+                  <FolderOpen size={18} /> Member Numbers Issued
+                </h2>
+                <button
+                  type="button"
+                  className={styles.infoButton}
+                  aria-describedby="ledger-info-tooltip"
+                  aria-label="About Member Numbers Issued"
+                >
+                  <SquareArrowUpRightExit size={15} aria-hidden="true" />
+                  <span
+                    id="ledger-info-tooltip"
+                    role="tooltip"
+                    className={styles.infoTooltip}
+                  >
+                    Audit record of numbers generated during your shift.
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className={styles.searchBox}>
               <span className={styles.searchIcon} aria-hidden="true">
-                🔍
+                <Search size={14} />
               </span>
               <input
                 type="text"
@@ -884,8 +1043,21 @@ export default function ReceptionistDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  filteredIssuances.map((item) => (
-                    <tr key={item.id}>
+                  paginatedIssuances.map((item) => (
+                    <tr
+                      key={item.id}
+                      className={styles.ledgerRow}
+                      onClick={() => setSelectedMember(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedMember(item);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View details for ${item.fullName}`}
+                    >
                       <td style={{ fontWeight: 600, color: 'var(--color-on-background, #00174c)' }}>{item.fullName}</td>
                       <td>
                         <span className={styles.numberPill}>{item.memberNumber}</span>
@@ -904,15 +1076,15 @@ export default function ReceptionistDashboard() {
                           {item.tier}
                         </span>
                       </td>
-                      <td>{item.expiryDate}</td>
+                      <td>{formatIssuedDate(item.createdAt)}</td>
                       <td>
                         {item.isClaimed ? (
                           <span className={styles.statusClaimed}>
-                            <span>●</span> Active on Portal
+                            <CircleCheck size={13} /> Active on Portal
                           </span>
                         ) : (
                           <span className={styles.statusPending}>
-                            <span>○</span> Awaiting Member Claim
+                            <CircleDashed size={13} /> Awaiting Member Claim
                           </span>
                         )}
                       </td>
@@ -920,7 +1092,10 @@ export default function ReceptionistDashboard() {
                         <button
                           type="button"
                           className={styles.btnTableAction}
-                          onClick={() => handleCopyNumber(item.memberNumber)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyNumber(item.memberNumber);
+                          }}
                           title="Copy Member Number"
                         >
                           {copiedNumber === item.memberNumber ? 'Copied' : 'Copy'}
@@ -932,8 +1107,230 @@ export default function ReceptionistDashboard() {
               </tbody>
             </table>
           </div>
+
+          {!isLoadingRecent && filteredIssuances.length > 0 && (
+            <div className={styles.ledgerFooter}>
+              <div className={styles.paginationInfo}>
+                Showing <strong>{pageStart + 1}</strong>–<strong>{pageEnd}</strong> of{' '}
+                <strong>{filteredIssuances.length}</strong>
+              </div>
+
+              <div className={styles.paginationControls}>
+                <label className={styles.pageSizeControl}>
+                  Rows per page
+                  <select
+                    className={styles.pageSizeSelect}
+                    value={ledgerPageSize}
+                    onChange={(e) => setLedgerPageSize(Number(e.target.value))}
+                    aria-label="Rows per page"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  className={styles.pageBtn}
+                  onClick={() => setLedgerPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage <= 1}
+                  aria-label="Previous page"
+                >
+                  Prev
+                </button>
+                <span className={styles.pageIndicator}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className={styles.pageBtn}
+                  onClick={() => setLedgerPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages}
+                  aria-label="Next page"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
+
+      {/* Member Detail Modal */}
+      {selectedMember && (() => {
+        const isPortalActive = selectedMember.isClaimed && selectedMember.status === 'ACTIVE';
+        const initials = selectedMember.fullName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase())
+          .join('');
+        return (
+          <div
+            className={styles.modalOverlay}
+            onClick={() => setSelectedMember(null)}
+            role="presentation"
+          >
+            <div
+              className={styles.memberModal}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="member-modal-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <div>
+                  <span className={styles.modalEyebrow}>Member Issuance Details</span>
+                  <h2 className={styles.modalTitle} id="member-modal-title">
+                    {selectedMember.fullName}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  className={styles.modalCloseBtn}
+                  onClick={() => setSelectedMember(null)}
+                  aria-label="Close member details"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className={styles.modalBody}>
+                <div className={styles.memberModalHero}>
+                  <div className={styles.memberModalAvatar} aria-hidden="true">
+                    {initials || 'M'}
+                  </div>
+                  <div className={styles.memberModalHeroInfo}>
+                    <div className={styles.memberModalNumber}>
+                      {formatMemberNumberDisplay(selectedMember.memberNumber)}
+                    </div>
+                    <span
+                      className={`${styles.slipTierBadge} ${
+                        selectedMember.tier === 'DIAMOND'
+                          ? styles.slipTierBadgeDiamond
+                          : selectedMember.tier === 'PREMIUM'
+                          ? styles.slipTierBadgePremium
+                          : styles.slipTierBadgeBasic
+                      }`}
+                    >
+                      {selectedMember.tier} MEMBERSHIP
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.modalStatusRow}>
+                  <span
+                    className={
+                      isPortalActive ? styles.modalStatusActive : styles.modalStatusInactive
+                    }
+                  >
+                    {isPortalActive ? (
+                      <CircleCheck size={14} aria-hidden="true" />
+                    ) : (
+                      <CircleDashed size={14} aria-hidden="true" />
+                    )}
+                    {isPortalActive
+                      ? 'Active on Portal'
+                      : selectedMember.isClaimed
+                      ? 'Claimed • Inactive'
+                      : 'Not Claimed • Inactive'}
+                  </span>
+                  <span
+                    className={
+                      selectedMember.status === 'ACTIVE'
+                        ? styles.modalStatusActive
+                        : styles.modalStatusInactive
+                    }
+                  >
+                    {selectedMember.status === 'ACTIVE' ? (
+                      <CircleCheck size={14} aria-hidden="true" />
+                    ) : (
+                      <CircleDashed size={14} aria-hidden="true" />
+                    )}
+                    Account: {formatAccountStatus(selectedMember.status)}
+                  </span>
+                </div>
+
+                <dl className={styles.modalDetailGrid}>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Phone size={14} aria-hidden="true" /> Phone
+                    </dt>
+                    <dd>{selectedMember.phone}</dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Mail size={14} aria-hidden="true" /> Email
+                    </dt>
+                    <dd>{selectedMember.email || 'Not provided'}</dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Ticket size={14} aria-hidden="true" /> Tier
+                    </dt>
+                    <dd>{formatAccountStatus(selectedMember.tier)}</dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Smartphone size={14} aria-hidden="true" /> Portal Claim
+                    </dt>
+                    <dd>
+                      {selectedMember.isClaimed
+                        ? 'Member number claimed'
+                        : 'Awaiting member claim'}
+                    </dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <CircleCheck size={14} aria-hidden="true" /> Email Verification
+                    </dt>
+                    <dd>
+                      {selectedMember.isEmailVerified ? 'Verified' : 'Not verified'}
+                    </dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Wallet size={14} aria-hidden="true" /> Opening Balance
+                    </dt>
+                    <dd>{formatNaira(selectedMember.openingBalanceKobo)}</dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <Clock size={14} aria-hidden="true" /> Issued Date
+                    </dt>
+                    <dd>{formatIssuedDate(selectedMember.createdAt)}</dd>
+                  </div>
+                  <div className={styles.modalDetailItem}>
+                    <dt>
+                      <CalendarDays size={14} aria-hidden="true" /> Expiry Date
+                    </dt>
+                    <dd>{selectedMember.expiryDate}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 3. Security Ribbon */}
+      <div className={styles.securityRibbon}>
+        <div className={styles.securityRibbonInner}>
+          <div className={styles.securityItem}>
+            <Lock size={14} className={styles.securityIcon} aria-hidden="true" />
+            <span>Security Policy: Row-Level Isolation & CSPRNG Number Generation</span>
+          </div>
+          <div className={styles.securityItem}>
+            <Scale size={14} className={styles.securityIcon} aria-hidden="true" />
+            <span>Compliance: NDPA 2023 Consent Flow Protected</span>
+          </div>
+          <div className={styles.securityItem}>
+            <FileText size={14} className={styles.securityIcon} aria-hidden="true" />
+            <span>Actor Audit: All issued numbers logged under ID {user.staff.id}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

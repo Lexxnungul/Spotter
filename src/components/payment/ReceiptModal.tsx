@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { X } from 'lucide-react';
 import styles from './ReceiptModal.module.css';
 
 export interface ReceiptProps {
@@ -56,7 +57,7 @@ export default function ReceiptModal({ receipt, isOpen, onClose }: ReceiptProps)
             aria-label="Close receipt"
             id="btn-close-receipt-modal"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 

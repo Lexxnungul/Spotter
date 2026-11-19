@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CircleCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import styles from './EmailVerificationBanner.module.css';
 
@@ -59,7 +60,7 @@ export default function EmailVerificationBanner() {
     if (!result.success) {
       setErrorMsg(result.error || 'Verification failed. Please try again.');
     } else {
-      setSuccessMsg('✓ Email verified successfully!');
+      setSuccessMsg('Email verified successfully!');
       setTimeout(() => {
         setIsDismissed(true);
       }, 1500);
@@ -85,7 +86,7 @@ export default function EmailVerificationBanner() {
   if (successMsg) {
     return (
       <div className={styles.bannerRoot} role="status" aria-live="polite">
-        <div className={styles.successMessage}>{successMsg}</div>
+        <div className={styles.successMessage}><CircleCheck size={16} /> {successMsg}</div>
       </div>
     );
   }

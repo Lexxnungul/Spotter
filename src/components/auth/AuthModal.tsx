@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import styles from './AuthModal.module.css';
 
@@ -262,7 +263,7 @@ export default function AuthModal() {
             onClick={closeAuthModal}
             aria-label="Close modal"
           >
-            ✕
+            <X size={18} />
           </button>
 
           <div className={styles.badge}>SPOTTER</div>
@@ -318,7 +319,7 @@ export default function AuthModal() {
                   required
                 />
                 {createErrors.fullName && (
-                  <span id="error-input-full-name" className={styles.fieldError} role="alert">
+                  <span id="error-input-full-name" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.fullName}
                   </span>
                 )}
@@ -349,7 +350,7 @@ export default function AuthModal() {
                   required
                 />
                 {createErrors.email && (
-                  <span id="error-input-email-address" className={styles.fieldError} role="alert">
+                  <span id="error-input-email-address" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.email}
                   </span>
                 )}
@@ -396,7 +397,7 @@ export default function AuthModal() {
                   required
                 />
                 {createErrors.memberNumber && (
-                  <span id="error-input-member-number" className={styles.fieldError} role="alert">
+                  <span id="error-input-member-number" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     {createErrors.memberNumber}
                   </span>
                 )}
@@ -448,7 +449,7 @@ export default function AuthModal() {
                   </button>
                 </div>
                 {createErrors.password && (
-                  <span id="error-input-create-password" className={styles.fieldError} role="alert">
+                  <span id="error-input-create-password" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}
@@ -488,7 +489,7 @@ export default function AuthModal() {
                 </span>
               </label>
               {consentError && (
-                <span id="error-consent" className={styles.fieldError} role="alert">
+                <span id="error-consent" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                   Please accept the terms and conditions to continue.
                 </span>
               )}
@@ -539,7 +540,7 @@ export default function AuthModal() {
                   required
                 />
                 {loginErrors.loginIdentifier && (
-                  <span id="error-input-login-id" className={styles.fieldError} role="alert">
+                  <span id="error-input-login-id" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}
@@ -594,7 +595,7 @@ export default function AuthModal() {
                   </button>
                 </div>
                 {loginErrors.loginPassword && (
-                  <span id="error-input-login-password" className={styles.fieldError} role="alert">
+                  <span id="error-input-login-password" className={styles.fieldError} role="alert"><TriangleAlert size={11} aria-hidden="true" />
                     this field must not be empty
                   </span>
                 )}

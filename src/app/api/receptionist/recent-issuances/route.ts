@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
         expiryDate: true,
         openingBalanceKobo: true,
         passwordHash: true,
+        isEmailVerified: true,
         createdAt: true,
       },
     });
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
       tier: m.tier,
       status: m.status,
       openingBalanceKobo: m.openingBalanceKobo,
+      isEmailVerified: m.isEmailVerified,
       expiryDate: new Intl.DateTimeFormat('en-GB', {
         day: 'numeric',
         month: 'short',

@@ -2,6 +2,16 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  ShieldCheck,
+  Smartphone,
+  Check,
+  Zap,
+  Cloud,
+  CreditCard,
+  MessageSquare,
+  ChevronRight,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import styles from './OnboardingFlow.module.css';
 import OnboardingIllustration from './OnboardingIllustration';
@@ -110,16 +120,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               <div className={styles.featureList}>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+                  <ShieldCheck className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Zero Disputes:</strong> Every workout check-in and membership renewal is permanently recorded to prevent billing or attendance conflicts.</span>
                 </div>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" />
-                  </svg>
+                  <Smartphone className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Your Phone is Your Pass:</strong> No need to carry a physical plastic badge. Your active status lives right on your phone.</span>
                 </div>
               </div>
@@ -138,15 +143,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               <div className={styles.featureList}>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Check className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Rolling 6-Digit Access Code:</strong> Tap <em>Check in</em> at the entrance to display your rotating access code for the front-desk scanner.</span>
                 </div>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+                  <ShieldCheck className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Real-Time Verification:</strong> Front-desk check-in logs directly to your monthly workout attendance ledger with zero manual wait.</span>
                 </div>
               </div>
@@ -165,15 +166,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               <div className={styles.featureList}>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
+                  <Zap className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Zero Data Usage:</strong> Tap question cards (timetable, prices, rules) to read cached answers locally without spending cellular data.</span>
                 </div>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-                  </svg>
+                  <Cloud className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Works Without Signal:</strong> Even during power drops or network blackouts, your timetable and verified rules open instantly.</span>
                 </div>
               </div>
@@ -192,16 +189,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               <div className={styles.featureList}>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <line x1="2" y1="10" x2="22" y2="10" />
-                  </svg>
+                  <CreditCard className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Transparent Ledger:</strong> View your active tier, due dates, and official Flutterwave payment receipts anytime.</span>
                 </div>
                 <div className={styles.featureItem}>
-                  <svg className={styles.featureIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
+                  <MessageSquare className={styles.featureIcon} size={16} aria-hidden="true" />
                   <span><strong>Ask the Desk:</strong> Have questions not covered by standard cards? Tap <em>Ask the desk</em> for direct front-desk resolution.</span>
                 </div>
               </div>
@@ -242,9 +234,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               onClick={() => setCurrentStep((prev) => Math.min(totalSteps, prev + 1))}
             >
               <span>Next</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -254,9 +244,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               onClick={handleFinish}
             >
               <span>Enter Dashboard</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              <Check size={16} aria-hidden="true" />
             </button>
           )}
         </footer>

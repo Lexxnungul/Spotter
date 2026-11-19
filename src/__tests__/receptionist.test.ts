@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { NextRequest } from 'next/server';
 import {
   generateRandom6DigitNumber,
@@ -412,6 +414,47 @@ describe('Receptionist Dashboard & Member Number Generation Pipeline', () => {
       expect(memberData.member.memberNumber).toBe(generatedNumber);
       expect(memberData.member.fullName).toBe('Kelechi Iheanacho');
       expect(memberData.member.tier).toBe('PREMIUM');
+    });
+  });
+
+  describe('Receptionist Terminal Header & Avatar Menu Architecture', () => {
+    const dashboardTsx = fs.readFileSync(
+      path.resolve(__dirname, '../components/receptionist/ReceptionistDashboard.tsx'),
+      'utf8'
+    );
+    const dashboardCss = fs.readFileSync(
+      path.resolve(__dirname, '../components/receptionist/ReceptionistDashboard.module.css'),
+      'utf8'
+    );
+
+    it('removes Lagos HQ pill and displays Receptionist Terminal in the header title', () => {
+      expect(dashboardTsx).not.toContain('Lagos HQ');
+      expect(dashboardTsx).toContain('Receptionist Terminal');
+      expect(dashboardTsx).not.toContain('Front Desk Terminal');
+    });
+
+    it('renders round avatar icon with logged in initial on right side of header', () => {
+      expect(dashboardTsx).toContain('id="btn-staff-avatar"');
+      expect(dashboardTsx).toContain('styles.avatarButton');
+      expect(dashboardTsx).toContain('styles.avatarInitial');
+      expect(dashboardCss).toContain('.avatarButton');
+      expect(dashboardCss).toContain('.avatarInitial');
+      expect(dashboardCss).toMatch(/\.avatarButton\s*\{[^}]*border-radius:\s*9999px;/);
+    });
+
+    it('avatar dropdown menu displays staff identity (Chioma Okeke) and actions Home, Member view, End Duty', () => {
+      expect(dashboardTsx).toContain('id="staff-avatar-dropdown"');
+      expect(dashboardTsx).toContain('styles.dropdownStaffSection');
+      expect(dashboardTsx).toContain('styles.dropdownStaffName');
+      expect(dashboardTsx).toContain('user.staff.fullName');
+      expect(dashboardTsx).toContain('id="btn-go-home"');
+      expect(dashboardTsx).toContain('id="btn-preview-member-app"');
+      expect(dashboardTsx).toContain('id="btn-staff-logout"');
+      expect(dashboardTsx).toContain('Home');
+      expect(dashboardTsx).toContain('Member view');
+      expect(dashboardTsx).toContain('End Duty');
+      expect(dashboardCss).toContain('.avatarDropdown');
+      expect(dashboardCss).toContain('.dropdownMenuItem');
     });
   });
 });

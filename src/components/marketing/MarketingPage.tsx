@@ -41,54 +41,56 @@ export default function MarketingPage({
 
       {/* Top Navbar */}
       <header className={styles.navbar}>
-        <div className={styles.brandGroup}>
-          <div className={styles.brandLogo} id="brand-header-logo">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 32 32"
-              width="36"
-              height="36"
-              className={styles.brandLogoSvg}
-              role="img"
-              aria-label="Spotter Logo"
-            >
-              <rect width="32" height="32" rx="0" fill="var(--color-primary, #0044e3)" />
-              <text x="16" y="23" fontFamily="system-ui, -apple-system, sans-serif" fontSize="20" fontWeight="700" fill="#ffffff" textAnchor="middle">S</text>
-            </svg>
+        <div className={styles.navbarInner}>
+          <div className={styles.brandGroup}>
+            <div className={styles.brandLogo} id="brand-header-logo">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 32 32"
+                width="36"
+                height="36"
+                className={styles.brandLogoSvg}
+                role="img"
+                aria-label="Spotter Logo"
+              >
+                <rect width="32" height="32" rx="0" fill="var(--color-primary, #0044e3)" />
+                <text x="16" y="23" fontFamily="system-ui, -apple-system, sans-serif" fontSize="20" fontWeight="700" fill="#ffffff" textAnchor="middle">S</text>
+              </svg>
+            </div>
           </div>
-        </div>
 
-        <nav className={styles.navActions} aria-label="Main Navigation">
-          {user ? (
-            <>
+          <nav className={styles.navActions} aria-label="Main Navigation">
+            {user ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.navButtonPrimary}
+                  onClick={handleLaunchApp}
+                  id="btn-nav-open-app"
+                >
+                  Open {user.type === 'member' ? 'Member App' : 'Staff Desk'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.navButtonGhost}
+                  onClick={logout}
+                  id="btn-nav-logout"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
                 className={styles.navButtonPrimary}
-                onClick={handleLaunchApp}
-                id="btn-nav-open-app"
+                onClick={() => openAuthModal('create')}
+                id="btn-nav-get-started"
               >
-                Open {user.type === 'member' ? 'Member App' : 'Staff Desk'}
+                Get Started
               </button>
-              <button
-                type="button"
-                className={styles.navButtonGhost}
-                onClick={logout}
-                id="btn-nav-logout"
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className={styles.navButtonPrimary}
-              onClick={() => openAuthModal('create')}
-              id="btn-nav-get-started"
-            >
-              Get Started
-            </button>
-          )}
-        </nav>
+            )}
+          </nav>
+        </div>
       </header>
 
       {/* 100vh Hero Core */}

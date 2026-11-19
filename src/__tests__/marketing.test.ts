@@ -174,6 +174,18 @@ describe('Marketing Page & Design System 100vh Integration', () => {
     expect(marketingCss).toContain('.footerLink');
   });
 
+  it('header navbar inner margin matches footer inner margin and max-width', () => {
+    const marketingTsxPath = path.resolve(__dirname, '../components/marketing/MarketingPage.tsx');
+    const marketingTsx = fs.readFileSync(marketingTsxPath, 'utf8');
+
+    expect(marketingTsx).toContain('styles.navbarInner');
+    expect(marketingCss).toContain('.navbarInner');
+    expect(marketingCss).toMatch(/\.navbarInner\s*\{[^}]*max-width:\s*1200px;/);
+    expect(marketingCss).toMatch(/\.navbarInner\s*\{[^}]*margin:\s*0\s*auto;/);
+    expect(marketingCss).toMatch(/\.footerInner\s*\{[^}]*max-width:\s*1200px;/);
+    expect(marketingCss).toMatch(/\.footerInner\s*\{[^}]*margin:\s*0\s*auto;/);
+  });
+
   it('home page client imports and supports switching between privacy, terms, and member views', () => {
     const homeClientPath = path.resolve(__dirname, '../components/marketing/HomePageClient.tsx');
     const homeClientTsx = fs.readFileSync(homeClientPath, 'utf8');

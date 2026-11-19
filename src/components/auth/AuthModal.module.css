@@ -233,12 +233,6 @@
   animation: fadeIn 0.15s ease-out;
 }
 
-.fieldError::before {
-  content: "⚠ ";
-  display: inline;
-  font-size: 11px;
-}
-
 /* Password field with Show button */
 .passwordWrapper {
   display: flex;
