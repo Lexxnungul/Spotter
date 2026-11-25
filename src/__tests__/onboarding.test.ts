@@ -65,9 +65,9 @@ describe('Member Onboarding Flow - Educational Orientation System', () => {
     expect(onboardingTsx).toContain('currentStep < totalSteps &&');
   });
 
-  it('allows members to revisit orientation guide from dashboard header', () => {
-    expect(memberAppTsx).toContain('member-orientation-btn');
-    expect(memberAppTsx).toContain("router.push('/onboarding')");
+  it('does not expose the orientation guide from dashboard header', () => {
+    expect(memberAppTsx).not.toContain('member-orientation-btn');
+    expect(memberAppTsx).not.toContain("router.push('/onboarding')");
   });
 
   it('styles enforce mobile-first design system styling and zero image dependencies', () => {

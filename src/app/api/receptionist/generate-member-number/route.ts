@@ -6,6 +6,7 @@ import { generateMemberNumberSchema } from '../../../../lib/validations/receptio
 import { getZodErrorMessage } from '../../../../lib/validations/auth';
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../../lib/rate-limit';
 import { sendMemberNumberIssuedEmail } from '../../../../lib/email';
+import { invalidateRecentIssuances } from '../../../../lib/recent-issuances-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest) {
       expiryDate.setDate(expiryDate.getDate() + 30);
 
       // 7. Persist Intending Member in Database
+      // `tier` stays null when the receptionist leaves plan selection to the member.
       const newMember = await prisma.member.create({
         data: {
           fullName: cleanFullName,
@@ -127,15 +129,17 @@ export async function POST(req: NextRequest) {
           email: cleanEmail || null,
           memberNumber,
           passwordHash: null, // Intending member will set password upon first portal registration
-          tier,
+          tier: tier ?? null,
           status: 'ACTIVE',
           expiryDate,
-          openingBalanceKobo: initialPaymentKobo,
+          openingBalanceKobo: tier ? initialPaymentKobo : 0,
         },
       });
 
+      invalidateRecentIssuances();
+
       // 8. If an initial payment was received at the desk, record payment traceability in PaymentLog
-      if (initialPaymentKobo > 0 && paymentMethod !== 'PENDING') {
+      if (tier && initialPaymentKobo > 0 && paymentMethod !== 'PENDING') {
         try {
           const now = new Date();
           const idempotencyKey = `desk_init_pay_${newMember.id}_${now.getTime()}`;

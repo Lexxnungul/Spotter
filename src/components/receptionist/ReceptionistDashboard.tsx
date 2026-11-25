@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ShieldAlert,
@@ -9,7 +9,6 @@ import {
   CircleCheck,
   CircleDashed,
   Check,
-  LockKeyhole,
   Lock,
   Ticket,
   Circle,
@@ -24,6 +23,7 @@ import {
   House,
   UserRound,
   LogOut,
+  Menu,
   X,
   Mail,
   Phone,
@@ -42,7 +42,7 @@ interface IssuedMember {
   phone: string;
   email?: string;
   memberNumber: string;
-  tier: 'BASIC' | 'PREMIUM' | 'DIAMOND';
+  tier: 'BASIC' | 'PREMIUM' | 'DIAMOND' | null;
   status: string;
   expiryDate: string;
   openingBalanceKobo?: number;
@@ -56,14 +56,43 @@ interface IssuedMember {
   };
 }
 
+const issuedDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
 function formatIssuedDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
+  return issuedDateFormatter.format(date);
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
+const MOBILE_LEDGER_QUERY = '(max-width: 768px)';
+
+function subscribeToMobileLedger(onStoreChange: () => void): () => void {
+  const query = window.matchMedia(MOBILE_LEDGER_QUERY);
+  query.addEventListener('change', onStoreChange);
+  return () => query.removeEventListener('change', onStoreChange);
+}
+
+function useIsMobileLedger(): boolean {
+  return useSyncExternalStore(
+    subscribeToMobileLedger,
+    () => window.matchMedia(MOBILE_LEDGER_QUERY).matches,
+    () => false
+  );
 }
 
 function formatAccountStatus(status?: string): string {
@@ -72,8 +101,25 @@ function formatAccountStatus(status?: string): string {
 }
 
 function formatNaira(kobo?: number): string {
-  if (kobo === undefined || kobo === null) return '—';
+  if (kobo === undefined || kobo === null) return '-';
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
+}
+
+type MembershipTier = 'BASIC' | 'PREMIUM' | 'DIAMOND';
+
+function formatPlanName(value?: string | null): string {
+  return value || 'No Plan Paid';
+}
+
+function formatPlanBadgeLabel(value?: string | null): string {
+  return value ? `${value} MEMBERSHIP` : 'No Plan Paid';
+}
+
+function getTierBadgeClass(value?: string | null): string {
+  if (value === 'DIAMOND') return styles.slipTierBadgeDiamond;
+  if (value === 'PREMIUM') return styles.slipTierBadgePremium;
+  if (value === 'BASIC') return styles.slipTierBadgeBasic;
+  return styles.slipTierBadgeNone;
 }
 
 export default function ReceptionistDashboard() {
@@ -84,8 +130,8 @@ export default function ReceptionistDashboard() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [tier, setTier] = useState<'BASIC' | 'PREMIUM' | 'DIAMOND'>('PREMIUM');
-  const [initialPaymentNaira, setInitialPaymentNaira] = useState('25000');
+  const [tier, setTier] = useState<MembershipTier | null>(null);
+  const [initialPaymentNaira, setInitialPaymentNaira] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'POS' | 'PENDING'>('CASH');
   const [notes, setNotes] = useState('');
 
@@ -104,7 +150,9 @@ export default function ReceptionistDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
   const [ledgerPage, setLedgerPage] = useState(1);
-  const [ledgerPageSize, setLedgerPageSize] = useState(10);
+  const ledgerPageSize = 10;
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
+  const isMobileLedger = useIsMobileLedger();
 
   // Member Detail Modal
   const [selectedMember, setSelectedMember] = useState<IssuedMember | null>(null);
@@ -117,28 +165,6 @@ export default function ReceptionistDashboard() {
 
   // Staff Avatar Dropdown Menu State
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
-  const avatarMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
-        setIsAvatarMenuOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsAvatarMenuOpen(false);
-      }
-    }
-    if (isAvatarMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isAvatarMenuOpen]);
 
   // Close member detail modal on Escape
   useEffect(() => {
@@ -157,8 +183,13 @@ export default function ReceptionistDashboard() {
     };
   }, [selectedMember]);
 
-  // Update initial price suggestion when tier toggles
-  const handleTierChange = (newTier: 'BASIC' | 'PREMIUM' | 'DIAMOND') => {
+  // Tier selection is optional: the member can choose a plan after signing in.
+  const handleTierChange = (newTier: MembershipTier) => {
+    if (tier === newTier) {
+      setTier(null);
+      setInitialPaymentNaira('');
+      return;
+    }
     setTier(newTier);
     if (newTier === 'DIAMOND') {
       setInitialPaymentNaira('45000');
@@ -198,10 +229,31 @@ export default function ReceptionistDashboard() {
     }
   }, [user, loadRecentIssuances]);
 
-  // Reset to first page whenever the filter or page size changes
+  // Reset to first page whenever the applied filter or page size changes
   useEffect(() => {
     setLedgerPage(1);
-  }, [searchQuery, ledgerPageSize]);
+  }, [debouncedSearchQuery, ledgerPageSize]);
+
+  // Filter recent issuances by query with typo-tolerant fuzzy matching, most relevant first
+  const filteredIssuances = useMemo(() => {
+    const trimmedSearchQuery = debouncedSearchQuery.trim();
+    return recentIssuances
+      .map((m) => ({
+        member: m,
+        createdAtMs: new Date(m.createdAt).getTime(),
+        score: trimmedSearchQuery
+          ? fuzzyMatch(trimmedSearchQuery, [m.fullName, m.phone, m.memberNumber])
+          : 1,
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => {
+        if (trimmedSearchQuery && b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return b.createdAtMs - a.createdAtMs;
+      })
+      .map((entry) => entry.member);
+  }, [recentIssuances, debouncedSearchQuery]);
 
   // Real-time phone check on blur or 11 digits
   const checkExistingPhone = async (val: string) => {
@@ -265,7 +317,7 @@ export default function ReceptionistDashboard() {
     }
 
     const paymentNumber = parseInt(initialPaymentNaira.replace(/,/g, '') || '0', 10);
-    const initialPaymentKobo = isNaN(paymentNumber) ? 0 : paymentNumber * 100;
+    const initialPaymentKobo = tier && !isNaN(paymentNumber) ? paymentNumber * 100 : 0;
 
     setIsSubmitting(true);
     try {
@@ -283,7 +335,7 @@ export default function ReceptionistDashboard() {
           tier,
           email: email.trim() || undefined,
           initialPaymentKobo,
-          paymentMethod,
+          paymentMethod: tier ? paymentMethod : 'PENDING',
           notes: notes.trim() || undefined,
         }),
       });
@@ -318,6 +370,9 @@ export default function ReceptionistDashboard() {
     setPhone('');
     setEmail('');
     setNotes('');
+    setTier(null);
+    setInitialPaymentNaira('');
+    setPaymentMethod('CASH');
     setPhoneCheckResult(null);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -369,7 +424,7 @@ export default function ReceptionistDashboard() {
       <div className={styles.gateContainer}>
         <div className={styles.gateCard}>
           <div className={styles.gateHeader}>
-            <div className={styles.logoBadge}>SPOTTER DESK</div>
+            <div className={styles.logoBadge}>SPOTTER</div>
             <h1 className={styles.gateTitle} id="gate-title">Receptionist Terminal</h1>
             <p className={styles.gateSubtitle}>
               Protected front-desk system. Authorized gym staff and receptionists only.
@@ -484,24 +539,6 @@ export default function ReceptionistDashboard() {
     );
   }
 
-  // Filter recent issuances by query with typo-tolerant fuzzy matching, most relevant first
-  const trimmedSearchQuery = searchQuery.trim();
-  const filteredIssuances = recentIssuances
-    .map((m) => ({
-      member: m,
-      score: trimmedSearchQuery
-        ? fuzzyMatch(trimmedSearchQuery, [m.fullName, m.phone, m.memberNumber])
-        : 1,
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => {
-      if (trimmedSearchQuery && b.score !== a.score) {
-        return b.score - a.score;
-      }
-      return new Date(b.member.createdAt).getTime() - new Date(a.member.createdAt).getTime();
-    })
-    .map((entry) => entry.member);
-
   const totalPages = Math.max(1, Math.ceil(filteredIssuances.length / ledgerPageSize));
   const currentPage = Math.min(ledgerPage, totalPages);
   const pageStart = (currentPage - 1) * ledgerPageSize;
@@ -514,16 +551,18 @@ export default function ReceptionistDashboard() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brandArea}>
-            <div className={styles.logoBadge}>SPOTTER DESK</div>
+            <div className={styles.logoBadge}>SPOTTER</div>
             <h1 className={styles.terminalTitle}>
               Receptionist Terminal
             </h1>
           </div>
 
-          <div className={styles.headerActions} ref={avatarMenuRef}>
+          <div className={styles.headerActions}>
             <button
               type="button"
-              className={styles.avatarButton}
+              className={`${styles.avatarButton} ${
+                isAvatarMenuOpen ? styles.avatarButtonOpen : ''
+              }`}
               onClick={() => setIsAvatarMenuOpen((prev) => !prev)}
               aria-label="Staff account menu"
               aria-expanded={isAvatarMenuOpen}
@@ -532,6 +571,15 @@ export default function ReceptionistDashboard() {
             >
               <span className={styles.avatarInitial} aria-hidden="true">
                 {user.staff.fullName[0]?.toUpperCase() || 'S'}
+              </span>
+              <span
+                className={`${styles.avatarMenuIcon} ${
+                  isAvatarMenuOpen ? styles.avatarMenuIconOpen : ''
+                }`}
+                aria-hidden="true"
+              >
+                <Menu size={22} className={styles.menuIconBars} />
+                <X size={22} className={styles.menuIconClose} />
               </span>
             </button>
 
@@ -696,8 +744,11 @@ export default function ReceptionistDashboard() {
               {/* Tier Selection */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  Membership Tier <span className={styles.requiredStar}>*</span>
+                  Membership Tier <span className={styles.optionalTag}>(Optional)</span>
                 </label>
+                <p className={styles.fieldHint}>
+                  Leave unselected to let the member choose their plan after signing in.
+                </p>
                 <div className={styles.tierGrid} role="radiogroup" aria-label="Membership Tier">
                   <div
                     className={`${styles.tierCard} ${tier === 'BASIC' ? styles.tierCardActive : ''}`}
@@ -761,14 +812,20 @@ export default function ReceptionistDashboard() {
                   <label className={styles.label} htmlFor="input-payment-amount">
                     Initial Payment (₦)
                   </label>
-                  <input
+                  <select
                     id="input-payment-amount"
-                    type="number"
-                    step="500"
-                    className={styles.input}
+                    className={styles.select}
                     value={initialPaymentNaira}
                     onChange={(e) => setInitialPaymentNaira(e.target.value)}
-                  />
+                    disabled={!tier}
+                  >
+                    <option value="" disabled>
+                      Select a tier first
+                    </option>
+                    <option value="15000">₦15,000</option>
+                    <option value="25000">₦25,000</option>
+                    <option value="45000">₦45,000</option>
+                  </select>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -780,6 +837,7 @@ export default function ReceptionistDashboard() {
                     className={styles.select}
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
+                    disabled={!tier}
                   >
                     <option value="CASH">Cash at Desk</option>
                     <option value="POS">POS Terminal</option>
@@ -814,9 +872,7 @@ export default function ReceptionistDashboard() {
                 {isSubmitting ? (
                   <span>Generating Secure Member Number...</span>
                 ) : (
-                  <>
-                    <LockKeyhole size={16} /> Generate & Issue 6-Digit Member Number
-                  </>
+                  <span>Generate Member Number</span>
                 )}
               </button>
             </form>
@@ -844,15 +900,11 @@ export default function ReceptionistDashboard() {
                       <Circle size={8} style={{ color: 'var(--color-primary, #0044e3)', fill: 'var(--color-primary, #0044e3)' }} /> SPOTTER GYM &bull; LAGOS
                     </div>
                     <span
-                      className={`${styles.slipTierBadge} ${
-                        newlyIssuedMember.tier === 'DIAMOND'
-                          ? styles.slipTierBadgeDiamond
-                          : newlyIssuedMember.tier === 'PREMIUM'
-                          ? styles.slipTierBadgePremium
-                          : styles.slipTierBadgeBasic
-                      }`}
+                      className={`${styles.slipTierBadge} ${getTierBadgeClass(
+                        newlyIssuedMember.tier
+                      )}`}
                     >
-                      {newlyIssuedMember.tier} MEMBERSHIP
+                      {formatPlanBadgeLabel(newlyIssuedMember.tier)}
                     </span>
                   </div>
 
@@ -1016,6 +1068,7 @@ export default function ReceptionistDashboard() {
             </div>
           </div>
 
+          {!isMobileLedger ? (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -1065,15 +1118,9 @@ export default function ReceptionistDashboard() {
                       <td>{item.phone}</td>
                       <td>
                         <span
-                          className={`${styles.slipTierBadge} ${
-                            item.tier === 'DIAMOND'
-                              ? styles.slipTierBadgeDiamond
-                              : item.tier === 'PREMIUM'
-                              ? styles.slipTierBadgePremium
-                              : styles.slipTierBadgeBasic
-                          }`}
+                          className={`${styles.slipTierBadge} ${getTierBadgeClass(item.tier)}`}
                         >
-                          {item.tier}
+                          {formatPlanName(item.tier)}
                         </span>
                       </td>
                       <td>{formatIssuedDate(item.createdAt)}</td>
@@ -1107,6 +1154,75 @@ export default function ReceptionistDashboard() {
               </tbody>
             </table>
           </div>
+          ) : (
+          <div className={styles.ledgerCards}>
+            {isLoadingRecent ? (
+              <div className={styles.ledgerCardEmpty}>Loading recent issuances...</div>
+            ) : filteredIssuances.length === 0 ? (
+              <div className={styles.ledgerCardEmpty}>No recent member numbers found.</div>
+            ) : (
+              paginatedIssuances.map((item) => (
+                <article
+                  key={item.id}
+                  className={styles.ledgerCard}
+                  onClick={() => setSelectedMember(item)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedMember(item);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View details for ${item.fullName}`}
+                >
+                  <div className={styles.ledgerCardTop}>
+                    <span className={styles.ledgerCardName}>{item.fullName}</span>
+                    <span
+                      className={`${styles.slipTierBadge} ${getTierBadgeClass(item.tier)}`}
+                    >
+                      {formatPlanName(item.tier)}
+                    </span>
+                  </div>
+
+                  <span className={styles.numberPill}>{item.memberNumber}</span>
+
+                  <div className={styles.ledgerCardMeta}>
+                    <span className={styles.ledgerCardMetaItem}>
+                      <Phone size={13} aria-hidden="true" /> {item.phone}
+                    </span>
+                    <span className={styles.ledgerCardMetaItem}>
+                      <CalendarDays size={13} aria-hidden="true" /> {formatIssuedDate(item.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className={styles.ledgerCardFooter}>
+                    {item.isClaimed ? (
+                      <span className={styles.statusClaimed}>
+                        <CircleCheck size={13} /> Active on Portal
+                      </span>
+                    ) : (
+                      <span className={styles.statusPending}>
+                        <CircleDashed size={13} /> Awaiting Member Claim
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.btnTableAction}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyNumber(item.memberNumber);
+                      }}
+                      title="Copy Member Number"
+                    >
+                      {copiedNumber === item.memberNumber ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+          )}
 
           {!isLoadingRecent && filteredIssuances.length > 0 && (
             <div className={styles.ledgerFooter}>
@@ -1116,20 +1232,6 @@ export default function ReceptionistDashboard() {
               </div>
 
               <div className={styles.paginationControls}>
-                <label className={styles.pageSizeControl}>
-                  Rows per page
-                  <select
-                    className={styles.pageSizeSelect}
-                    value={ledgerPageSize}
-                    onChange={(e) => setLedgerPageSize(Number(e.target.value))}
-                    aria-label="Rows per page"
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                </label>
-
                 <button
                   type="button"
                   className={styles.pageBtn}
@@ -1206,15 +1308,11 @@ export default function ReceptionistDashboard() {
                       {formatMemberNumberDisplay(selectedMember.memberNumber)}
                     </div>
                     <span
-                      className={`${styles.slipTierBadge} ${
-                        selectedMember.tier === 'DIAMOND'
-                          ? styles.slipTierBadgeDiamond
-                          : selectedMember.tier === 'PREMIUM'
-                          ? styles.slipTierBadgePremium
-                          : styles.slipTierBadgeBasic
-                      }`}
+                      className={`${styles.slipTierBadge} ${getTierBadgeClass(
+                        selectedMember.tier
+                      )}`}
                     >
-                      {selectedMember.tier} MEMBERSHIP
+                      {formatPlanBadgeLabel(selectedMember.tier)}
                     </span>
                   </div>
                 </div>
@@ -1269,7 +1367,7 @@ export default function ReceptionistDashboard() {
                     <dt>
                       <Ticket size={14} aria-hidden="true" /> Tier
                     </dt>
-                    <dd>{formatAccountStatus(selectedMember.tier)}</dd>
+                    <dd>{formatPlanName(selectedMember.tier)}</dd>
                   </div>
                   <div className={styles.modalDetailItem}>
                     <dt>

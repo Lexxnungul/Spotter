@@ -5,12 +5,10 @@
 .bannerRoot {
   background: var(--color-surface-container, #ebf1ff);
   border: 1px solid var(--color-outline-variant, #d6e3ff);
-  border-left: 4px solid var(--color-primary, #0044e3);
   border-radius: 4px;
   padding: 18px 24px;
   margin-bottom: 24px;
   position: relative;
-  box-shadow: var(--effect-soft-shadow);
   font-family: var(--typography-body-large-font-family, var(--font-dm-sans, sans-serif));
 }
 

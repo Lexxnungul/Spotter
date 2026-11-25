@@ -15,7 +15,6 @@ const path = require('path');
 
 const INPUT_FILE = path.join(__dirname, '..', 'design-tokens.tokens.json');
 const OUTPUT_CSS_FILE = path.join(__dirname, 'tokens.css');
-const OUTPUT_VARIABLES_CSS_FILE = path.join(__dirname, 'variables.css');
 
 /**
  * Normalizes camelCase, spaces, and dots into clean kebab-case CSS variable slugs.
@@ -266,11 +265,9 @@ function convertTokensToCSS() {
   // Write files
   fs.mkdirSync(path.dirname(OUTPUT_CSS_FILE), { recursive: true });
   fs.writeFileSync(OUTPUT_CSS_FILE, cssOutput, 'utf8');
-  fs.writeFileSync(OUTPUT_VARIABLES_CSS_FILE, cssOutput, 'utf8');
 
   console.log(`✅ Design Tokens successfully converted to CSS variables!`);
   console.log(`   Output file: ${OUTPUT_CSS_FILE}`);
-  console.log(`   Output file: ${OUTPUT_VARIABLES_CSS_FILE}`);
 }
 
 convertTokensToCSS();

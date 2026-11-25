@@ -6,7 +6,7 @@ export interface MemberSession {
   id: string;
   fullName: string;
   phone: string;
-  tier: 'BASIC' | 'PREMIUM' | 'DIAMOND';
+  tier: 'BASIC' | 'PREMIUM' | 'DIAMOND' | null;
   status: 'ACTIVE' | 'PAUSED' | 'LEFT';
   expiryDate: string;
   daysTrained: number;

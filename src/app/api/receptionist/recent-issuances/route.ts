@@ -2,8 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { authenticateStaffRequest } from '../../../../lib/staff-auth';
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../../lib/rate-limit';
+import {
+  getCachedRecentIssuances,
+  setCachedRecentIssuances,
+} from '../../../../lib/recent-issuances-cache';
 
 export const dynamic = 'force-dynamic';
+
+interface FormattedIssuance {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  memberNumber: string;
+  tier: MemberTier;
+  status: string;
+  openingBalanceKobo?: number;
+  isEmailVerified?: boolean;
+  expiryDate: string;
+  createdAt: string;
+  isClaimed: boolean;
+}
+
+type MemberTier = 'BASIC' | 'PREMIUM' | 'DIAMOND' | null;
+
+const expiryDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+const responseHeaders = {
+  'Cache-Control': 'private, max-age=15',
+  'X-Content-Type-Options': 'nosniff',
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,7 +69,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 3. Fetch Recent Members (most recent 25 members)
+    // 3. Serve a short-lived shared snapshot before hitting the database
+    const cached = getCachedRecentIssuances<FormattedIssuance[]>();
+    if (cached) {
+      return NextResponse.json(
+        { success: true, issuances: cached },
+        { headers: responseHeaders }
+      );
+    }
+
+    // 4. Fetch Recent Members (most recent 25 members)
     const members = await prisma.member.findMany({
       take: 25,
       orderBy: { createdAt: 'desc' },
@@ -67,14 +108,12 @@ export async function GET(req: NextRequest) {
       status: m.status,
       openingBalanceKobo: m.openingBalanceKobo,
       isEmailVerified: m.isEmailVerified,
-      expiryDate: new Intl.DateTimeFormat('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(new Date(m.expiryDate)),
+      expiryDate: expiryDateFormatter.format(new Date(m.expiryDate)),
       createdAt: m.createdAt.toISOString(),
       isClaimed: Boolean(m.passwordHash),
     }));
+
+    setCachedRecentIssuances(formatted);
 
     return NextResponse.json(
       {
@@ -82,10 +121,7 @@ export async function GET(req: NextRequest) {
         issuances: formatted,
       },
       {
-        headers: {
-          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-          'X-Content-Type-Options': 'nosniff',
-        },
+        headers: responseHeaders,
       }
     );
   } catch (err: any) {

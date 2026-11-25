@@ -18,7 +18,7 @@ model Member {
   email              String?             @unique
   memberNumber       String?             @unique
   passwordHash       String?
-  tier               String              @default("BASIC") // BASIC, PREMIUM
+  tier               String? // BASIC, PREMIUM, DIAMOND; null = no plan selected yet
   status             String              @default("ACTIVE") // ACTIVE, PAUSED, LEFT
   expiryDate         DateTime            @default(now())
   openingBalanceKobo Int                 @default(0)
@@ -36,6 +36,7 @@ model Member {
   wrongReports       WrongAnswerReport[]
   consent            ConsentRecord?
   activationCodes    ActivationCode[]
+  chatConversations  ChatConversation[]
 
   @@index([status])
   @@index([memberNumber])
@@ -89,7 +90,8 @@ model StaffAccount {
   cardVersions     CardVersion[]  @relation("author")
   approvals        CardVersion[]  @relation("approver")
   paymentLogs      PaymentLog[]   @relation("typist")
-  manualAttendance Attendance[]   @relation("typist")
+  manualAttendance Attendance[]  @relation("typist")
+  chatConversations ChatConversation[]
 }
 
 // Not private. One row per shift start.
@@ -300,3 +302,36 @@ model DeskQuestionLog {
 
   @@index([createdAt])
 }
+
+// Private model. Fetched by memberId or staffId only.
+model ChatConversation {
+  id        String      @id @default(cuid())
+  memberId  String?
+  member    Member?     @relation(fields: [memberId], references: [id])
+  staffId   String?
+  staff     StaffAccount? @relation(fields: [staffId], references: [id])
+  title     String?
+  model     String      @default("gemini-3.8-flash")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  messages  ChatMessage[]
+
+  @@index([memberId])
+  @@index([staffId])
+  @@index([createdAt])
+}
+
+// Private model. Fetched through ChatConversation only.
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String           // user, model
+  content        String
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+

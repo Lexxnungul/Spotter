@@ -133,7 +133,7 @@ export function appendJourneyEvent(
  */
 export function inferTierFromAmountKobo(
   amountKobo: number,
-  fallback: string = 'BASIC'
+  fallback: string | null = 'BASIC'
 ): PaymentTier {
   if (amountKobo >= SUBSCRIPTION_FEES_KOBO.DIAMOND) return 'DIAMOND';
   if (amountKobo >= SUBSCRIPTION_FEES_KOBO.PREMIUM) return 'PREMIUM';
@@ -149,7 +149,7 @@ export function inferTierFromAmountKobo(
  * Never trusts client-supplied amounts (payments.md line 13).
  */
 export function resolveServerAmountKobo(params: {
-  memberTier: string;
+  memberTier: string | null;
   openingBalanceKobo: number;
   purpose: PaymentPurpose;
   requestedTier?: PaymentTier;

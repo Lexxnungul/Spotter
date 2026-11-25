@@ -12,7 +12,7 @@ In standard design token systems:
 
 ## Single Source of Truth
 
-The root `design-tokens.tokens.json` file is the single source of truth for all design tokens (colors, shadows, typography). Whenever tokens are updated, re-running the converter script regenerates `src/tokens.css` and `src/variables.css`.
+The root `design-tokens.tokens.json` file is the single source of truth for all design tokens (colors, shadows, typography). Whenever tokens are updated, re-running the converter script regenerates `src/tokens.css`.
 
 ## Usage
 

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { formatLagosDateTime } from './lagos-date';
 
 export interface EmailOptions {
   to: string | string[];
@@ -260,7 +261,7 @@ export async function sendMemberNumberIssuedEmail(data: {
   to: string;
   fullName: string;
   memberNumber: string;
-  tier: string;
+  tier?: string | null;
   issuedByName?: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const firstName = data.fullName.split(' ')[0] || data.fullName;
@@ -291,7 +292,7 @@ export async function sendMemberNumberIssuedEmail(data: {
   <div class="card">
     <div>
       <span class="badge">SPOTTER GYM</span>
-      <span class="tier-badge">${data.tier} TIER</span>
+      ${data.tier ? `<span class="tier-badge">${data.tier} TIER</span>` : ''}
     </div>
     <h1>Welcome to Spotter Gym!</h1>
     <p>Hi ${firstName},</p>
@@ -323,12 +324,90 @@ Welcome to Spotter Gym!
 
 Hi ${firstName},
 
-Your official 6-digit member number is: ${data.memberNumber} (${data.tier} Tier)
+Your official 6-digit member number is: ${data.memberNumber}${data.tier ? ` (${data.tier} Tier)` : ' (No plan selected yet)'}
 
 To activate your account:
 1. Visit https://spottergym.app/auth
 2. Tap "Create Account"
 3. Enter your Member Number: ${data.memberNumber} and create your password.
+
+Spotter Gym, Lagos, Nigeria.
+`;
+
+  return sendEmail({
+    to: data.to,
+    subject,
+    html,
+    text,
+  });
+}
+
+export async function sendCheckInCodeEmail(data: {
+  to: string;
+  fullName: string;
+  code: string;
+  generatedAt: Date;
+  expiresAt: Date;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const firstName = data.fullName.trim().split(' ')[0] || 'Member';
+  const code = data.code.trim();
+  const generated = formatLagosDateTime(data.generatedAt);
+  const expires = formatLagosDateTime(data.expiresAt);
+  const subject = `${code} is your Spotter check-in code`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; margin: 0; padding: 24px; }
+    .card { max-width: 540px; margin: 0 auto; background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; }
+    .badge { display: inline-block; background: #2563eb; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    h1 { color: #ffffff; font-size: 22px; margin-top: 16px; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+    .code-container { background: #1e293b; border: 2px solid #2563eb; border-radius: 10px; padding: 24px; margin: 24px 0; text-align: center; }
+    .code-display { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #38bdf8; margin: 0; padding-left: 10px; }
+    .detail { color: #cbd5e1; font-size: 13px; line-height: 1.6; margin: 6px 0; }
+    .expiry-note { color: #64748b; font-size: 12px; margin-top: 12px; }
+    .footer { text-align: center; margin-top: 24px; color: #64748b; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">SPOTTER GYM</span>
+    <h1>Your check-in code</h1>
+    <p>Hi ${firstName},</p>
+    <p>Use this code at the Spotter check-in device to record today's gym visit.</p>
+
+    <div class="code-container">
+      <div class="code-display">${code}</div>
+      <div class="expiry-note">This code expires in 10 minutes. Never share it with anyone.</div>
+    </div>
+
+    <p class="detail"><strong>Generated:</strong> ${generated.date} at ${generated.time} (Lagos time)</p>
+    <p class="detail"><strong>Valid until:</strong> ${expires.date} at ${expires.time} (Lagos time)</p>
+
+    <div class="footer">
+      Spotter Gym &bull; Lagos, Nigeria<br>
+      This email was sent in accordance with the Nigeria Data Protection Act (NDPA) 2023.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Spotter Gym Check-in Code
+
+Hi ${firstName},
+
+Your 6-digit check-in code is: ${code}
+
+Generated: ${generated.date} at ${generated.time} (Lagos time)
+Valid until: ${expires.date} at ${expires.time} (Lagos time)
+
+This code expires in 10 minutes. Never share it with anyone.
 
 Spotter Gym, Lagos, Nigeria.
 `;

@@ -6,6 +6,7 @@ import { registerSchema, getZodErrorMessage } from '../../../../lib/validations/
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../../lib/rate-limit';
 import { checkPwnedPassword } from '../../../../lib/pwned-passwords';
 import { createVerificationCode } from '../../../../lib/email-verification';
+import { setMemberSessionCookie } from '../../../../lib/member-auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -150,12 +151,12 @@ export async function POST(req: NextRequest) {
         to: memberEmail,
         fullName: memberRecord.fullName,
         memberNumber: memberRecord.memberNumber || cleanMemberNumber,
-        tier: memberRecord.tier,
+        tier: memberRecord.tier || undefined,
       }).catch((emailErr) => {
         console.warn('[Welcome Email Warning]:', emailErr);
       });
 
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           success: true,
           member: {
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
             email: memberEmail,
             memberNumber: memberRecord.memberNumber || cleanMemberNumber,
             phone: memberRecord.phone || '+234 800 000 0000',
-            tier: memberRecord.tier,
+            tier: memberRecord.tier || undefined,
             status: memberRecord.status,
             expiryDate: expiryFormatted,
             daysTrained: 0,
@@ -177,6 +178,13 @@ export async function POST(req: NextRequest) {
         },
         { status: 201 }
       );
+
+      return setMemberSessionCookie(response, {
+        id: memberRecord.id,
+        fullName: memberRecord.fullName,
+        email: memberEmail,
+        memberNumber: memberRecord.memberNumber || cleanMemberNumber,
+      });
     } catch (dbError: any) {
       console.error('[API Register Database Error]:', dbError);
 

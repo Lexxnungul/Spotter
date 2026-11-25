@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Check, CircleCheck, CreditCard, ReceiptText, X } from 'lucide-react';
+import Image from 'next/image';
+import QRCode from 'qrcode';
+import { ArrowRight, Check, ChevronDown, CircleCheck, CreditCard, House, LogOut, Menu, ReceiptText, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { createCheckInQrPayload } from '../../lib/checkin-qr';
 import EmailVerificationBanner from './EmailVerificationBanner';
 import PaymentModal from '../payment/PaymentModal';
 import ReceiptModal, { ReceiptProps } from '../payment/ReceiptModal';
@@ -22,6 +25,12 @@ interface CardRecord {
   answer: string;
   record: string;
   confirmedDate: string;
+  source?: 'records' | 'gemini';
+}
+
+interface ChatHistoryTurn {
+  role: 'user' | 'model';
+  content: string;
 }
 
 function formatTierLabel(tier?: string | null): 'Basic' | 'Premium' | 'Diamond' {
@@ -33,6 +42,15 @@ function formatTierLabel(tier?: string | null): 'Basic' | 'Premium' | 'Diamond' 
 function formatLabel(value?: string | null): string {
   if (!value) return '';
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+function formatCheckInTime(value?: string | null): string {
+  if (!value) return '';
+  return new Date(value).toLocaleTimeString('en-GB', {
+    timeZone: 'Africa/Lagos',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // 8 Primary Quick Questions from the Target Design
@@ -168,9 +186,81 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
   const { user, logout } = useAuth();
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [questionText, setQuestionText] = useState<string>('');
+  const [showMoreQuestions, setShowMoreQuestions] = useState<boolean>(false);
+  const [subscriptionNotice, setSubscriptionNotice] = useState<string | null>(null);
   const [networkNotice, setNetworkNotice] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<CardRecord | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [isAskingGemini, setIsAskingGemini] = useState<boolean>(false);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryTurn[]>([]);
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState<boolean>(false);
+  const [isGeneratingCheckIn, setIsGeneratingCheckIn] = useState<boolean>(false);
+  const [checkInCode, setCheckInCode] = useState<{
+    code: string;
+    generatedAt: string;
+    expiresAt: string;
+    emailedTo: string;
+  } | null>(null);
+  const [checkInQrDataUrl, setCheckInQrDataUrl] = useState<string>('');
+  const [showCheckInQr, setShowCheckInQr] = useState<boolean>(false);
+  const [checkInStatus, setCheckInStatus] = useState<{
+    checkedInToday: boolean;
+    checkedInAt: string | null;
+  } | null>(null);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const code = checkInCode?.code;
+
+    setShowCheckInQr(false);
+
+    if (!code) {
+      setCheckInQrDataUrl('');
+      return;
+    }
+
+    QRCode.toDataURL(createCheckInQrPayload(code), {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 260,
+      color: { dark: '#00174c', light: '#ffffff' },
+    })
+      .then((dataUrl) => {
+        if (!cancelled) setCheckInQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setCheckInQrDataUrl('');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkInCode?.code]);
+
+  useEffect(() => {
+    if (!isAvatarMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
+        setIsAvatarMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAvatarMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAvatarMenuOpen]);
 
   // Payment integration states
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
@@ -222,6 +312,51 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
 
   const memberId = user?.type === 'member' ? user.member.id : null;
 
+  useEffect(() => {
+    if (user?.type !== 'member') {
+      setCheckInCode(null);
+      setCheckInStatus(null);
+      return;
+    }
+
+    let isActive = true;
+    const loadCheckInStatus = async () => {
+      try {
+        const res = await fetch('/api/checkin/status', { cache: 'no-store' });
+        const data = await res.json();
+        if (isActive && res.ok && data.success) {
+          setCheckInStatus({
+            checkedInToday: !!data.checkedInToday,
+            checkedInAt: data.checkedInAt,
+          });
+        }
+      } catch {
+        if (isActive) {
+          setCheckInStatus(null);
+        }
+      }
+    };
+
+    const handleCheckInSuccess = (event: Event) => {
+      const detail = (event as CustomEvent<{ checkedInAt?: string; daysTrained?: number }>).detail;
+      setCheckInCode(null);
+      setCheckInStatus({
+        checkedInToday: true,
+        checkedInAt: detail?.checkedInAt || new Date().toISOString(),
+      });
+      if (typeof detail?.daysTrained === 'number') {
+        setStatus((previous) => ({ ...previous, daysTrained: detail.daysTrained! }));
+      }
+    };
+
+    loadCheckInStatus();
+    window.addEventListener('spotter:checkin-success', handleCheckInSuccess);
+    return () => {
+      isActive = false;
+      window.removeEventListener('spotter:checkin-success', handleCheckInSuccess);
+    };
+  }, [user]);
+
   const applyVerifiedPaymentSuccess = useCallback(
     (
       data: {
@@ -247,6 +382,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
         receipt: data.receipt,
       });
       setIsNewMember(false);
+      setSubscriptionNotice(null);
       setWaitingPayment(null);
       setPendingTxRef(null);
       setStatus((prev) => ({
@@ -470,6 +606,87 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
     };
   }, []);
 
+  const hasNoPlan = isNewMember;
+
+  const showSubscriptionNotice = () => {
+    setSubscriptionNotice('Please pay for a subscription to use this feature.');
+  };
+
+  const handleQuestionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (hasNoPlan) {
+      setQuestionText('');
+      showSubscriptionNotice();
+      return;
+    }
+    setQuestionText(e.target.value);
+    setSubscriptionNotice(null);
+  };
+
+  const handleQuestionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!hasNoPlan) return;
+    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      showSubscriptionNotice();
+    }
+  };
+
+  const handleQuestionPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (!hasNoPlan) return;
+    e.preventDefault();
+    showSubscriptionNotice();
+  };
+
+  const handleGenerateCheckIn = async () => {
+    if (!isOnline) {
+      setNetworkNotice('You need data for this.');
+      return;
+    }
+    if (!memberId) {
+      router.push('/auth?mode=login');
+      return;
+    }
+
+    setNetworkNotice(null);
+    setActionFeedback(null);
+    setIsGeneratingCheckIn(true);
+
+    try {
+      const res = await fetch('/api/checkin/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setActionFeedback(data.error || 'Could not generate a check-in code. Please try again.');
+        return;
+      }
+
+      if (data.alreadyCheckedIn) {
+        setCheckInCode(null);
+        setCheckInStatus({
+          checkedInToday: true,
+          checkedInAt: data.checkedInAt,
+        });
+        setActionFeedback('You are already checked in today.');
+        return;
+      }
+
+      setCheckInStatus({ checkedInToday: false, checkedInAt: null });
+      setCheckInCode({
+        code: data.code,
+        generatedAt: data.generatedAt,
+        expiresAt: data.expiresAt,
+        emailedTo: data.emailedTo,
+      });
+      setActionFeedback(`Check-in code sent to ${data.emailedTo}.`);
+    } catch {
+      setActionFeedback('Unable to connect to server. Please check your internet connection.');
+    } finally {
+      setIsGeneratingCheckIn(false);
+    }
+  };
+
   const handleActionClick = (actionName: string) => {
     if (!isOnline) {
       setNetworkNotice('You need data for this.');
@@ -478,7 +695,8 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
     setNetworkNotice(null);
 
     if (actionName === 'Check in') {
-      setActionFeedback("Whiteboard code check: Today's 4-digit code is posted at the front desk.");
+      void handleGenerateCheckIn();
+      return;
     } else if (actionName === 'Pay') {
       if (!memberId) {
         router.push('/auth?mode=login');
@@ -538,34 +756,103 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
     }
   };
 
-  const handleQuestionSubmit = (e: React.FormEvent) => {
+  const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasNoPlan) {
+      showSubscriptionNotice();
+      return;
+    }
     if (!isOnline) {
       setNetworkNotice('You need data to ask a question.');
       return;
     }
-    if (!questionText.trim()) return;
 
-    // Look up direct question or simulate Gemini router
-    const cleanQuery = questionText.trim().toLowerCase();
-    const matchedKey = Object.keys(CARD_RECORDS).find(
-      (k) => k.toLowerCase() === cleanQuery || cleanQuery.includes(k.toLowerCase())
-    );
+    const message = questionText.trim();
+    if (!message || isAskingGemini) return;
 
-    if (matchedKey) {
-      setActiveCard(CARD_RECORDS[matchedKey]);
-    } else {
-      setActiveCard({
-        title: 'Gemini AI Assistant',
-        answer: `Routing your query: "${questionText}". Approved gym card matches timetable and access guidelines.`,
-        record: `Card type: TIMETABLE • Confidence: 0.94 • Effective Tier: ${status.tier}`,
-        confirmedDate: 'Confirmed by Gym Owner',
+    const localRecord = CARD_RECORDS[message];
+    if (localRecord) {
+      setActiveCard(localRecord);
+      setChatHistory((prev) =>
+        [
+          ...prev,
+          { role: 'user' as const, content: message },
+          { role: 'model' as const, content: localRecord.answer },
+        ].slice(-20)
+      );
+      setQuestionText('');
+      return;
+    }
+
+    setNetworkNotice(null);
+    setActionFeedback(null);
+    setIsAskingGemini(true);
+    setActiveCard({
+      title: 'Gemini AI Assistant',
+      answer: 'Thinking...',
+      record: 'Contacting Gemini...',
+      confirmedDate: 'Live AI response',
+      source: 'gemini',
+    });
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          conversationId: chatConversationId ?? undefined,
+          history: chatHistory,
+        }),
       });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success || typeof data.reply !== 'string') {
+        setActiveCard(null);
+        setActionFeedback(
+          data?.error || 'The assistant could not respond right now. Please try again.'
+        );
+        return;
+      }
+
+      const reply = data.reply as string;
+      const isLocalReply = data.source === 'local';
+      if (typeof data.conversationId === 'string') {
+        setChatConversationId(data.conversationId);
+      }
+      setChatHistory((prev) =>
+        [
+          ...prev,
+          { role: 'user' as const, content: message },
+          { role: 'model' as const, content: reply },
+        ].slice(-20)
+      );
+      setActiveCard({
+        title: isLocalReply && typeof data.title === 'string' ? data.title : 'Gemini AI Assistant',
+        answer: reply,
+        record: isLocalReply && typeof data.record === 'string'
+          ? data.record
+          : `Live Gemini response\nTier: ${status.tier}\nSent: ${new Date().toLocaleTimeString('en-GB', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}`,
+        confirmedDate: isLocalReply
+          ? 'Answered locally while live AI is unavailable'
+          : 'Live AI response just now',
+        source: isLocalReply ? 'records' : 'gemini',
+      });
+      setQuestionText('');
+    } catch {
+      setActiveCard(null);
+      setActionFeedback('Unable to reach the assistant. Please check your connection.');
+    } finally {
+      setIsAskingGemini(false);
     }
   };
 
   const memberDisplayName = memberData?.fullName || 'Spotter Member';
   const memberDisplayEmail = memberData?.email || 'Sign in to load your account';
+  const avatarInitial = memberData?.fullName?.trim().charAt(0).toUpperCase() || 'M';
   const rawMemberNumber = memberData?.memberNumber || '';
   const memberNumberDisplay = rawMemberNumber
     ? rawMemberNumber.startsWith('#')
@@ -580,64 +867,119 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
       : status.tier === 'Premium'
         ? 'Premium Member'
         : 'Basic Member';
-  const balanceDisplay = status.balanceKobo === 0 ? 'Nothing due.' : `${(status.balanceKobo / 100).toLocaleString()} naira`;
+  const balanceDisplay = status.balanceKobo === 0 ? 'Nothing Due.' : `${(status.balanceKobo / 100).toLocaleString()} naira`;
+  const attendanceDisplay = `${status.daysTrained} ${status.daysTrained === 1 ? 'Day' : 'Days'} This Month`;
 
   return (
     <div className={styles.memberAppRoot}>
       <div className={styles.screenContainer}>
         {/* Top Header matching Target Design */}
         <header className={styles.appHeader}>
-          <div className={styles.memberIdentity}>
-            <h1 className={styles.memberName}>{memberDisplayName}</h1>
-            <p className={styles.memberEmail}>{memberDisplayEmail}</p>
-          </div>
+          <div className={styles.logoBadge}>SPOTTER</div>
 
-          <div className={styles.headerActions}>
-            <span className={styles.memberNumberBadge} id="member-number-badge">
-              {memberNumberDisplay}
-            </span>
-
-            {onBackToMarketing && (
-              <button
-                type="button"
-                className={styles.headerOutlineBtn}
-                onClick={onBackToMarketing}
-                title="Return to marketing page"
-              >
-                Marketing
-              </button>
-            )}
-
+          <div className={styles.headerActions} ref={avatarMenuRef}>
             <button
               type="button"
-              id="member-orientation-btn"
-              className={styles.headerOutlineBtn}
-              onClick={() => router.push('/onboarding')}
-              title="Review member orientation"
+              className={`${styles.avatarButton} ${
+                isAvatarMenuOpen ? styles.avatarButtonOpen : ''
+              }`}
+              onClick={() => setIsAvatarMenuOpen((prev) => !prev)}
+              aria-label="Member account menu"
+              aria-expanded={isAvatarMenuOpen}
+              aria-haspopup="true"
+              id="btn-member-avatar"
             >
-              Guide
+              <span className={styles.avatarInitial} aria-hidden="true">
+                {avatarInitial}
+              </span>
+              <span
+                className={`${styles.avatarMenuIcon} ${
+                  isAvatarMenuOpen ? styles.avatarMenuIconOpen : ''
+                }`}
+                aria-hidden="true"
+              >
+                <Menu size={22} className={styles.menuIconBars} />
+                <X size={22} className={styles.menuIconClose} />
+              </span>
             </button>
 
-            {user ? (
-              <button
-                type="button"
-                className={styles.headerOutlineBtn}
-                onClick={logout}
-                title="Sign out of device"
-                id="btn-member-sign-out"
+            {isAvatarMenuOpen && (
+              <div
+                className={styles.avatarDropdown}
+                id="member-avatar-dropdown"
+                role="menu"
+                aria-label="Member account menu"
               >
-                Sign Out
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.headerOutlineBtn}
-                onClick={() => router.push('/auth?mode=login')}
-                title="Sign in to your account"
-                id="btn-member-sign-in"
-              >
-                Sign In
-              </button>
+                <div className={styles.dropdownMemberSection}>
+                  <div className={styles.dropdownAvatar} aria-hidden="true">
+                    {avatarInitial}
+                  </div>
+                  <div className={styles.dropdownMemberInfo}>
+                    <span className={styles.dropdownName}>{memberDisplayName}</span>
+                    <span className={styles.dropdownEmail}>{memberDisplayEmail}</span>
+                  </div>
+                </div>
+
+                <div className={styles.dropdownDivider} />
+
+                <div className={styles.dropdownNumberRow}>
+                  <CreditCard size={16} aria-hidden="true" />
+                  <span className={styles.dropdownNumberLabel}>Member number</span>
+                  <span className={styles.dropdownNumberBadge} id="member-number-badge">
+                    {memberNumberDisplay}
+                  </span>
+                </div>
+
+                <div className={styles.dropdownDivider} />
+
+                <div className={styles.dropdownMenuItems}>
+                  {onBackToMarketing && (
+                    <button
+                      type="button"
+                      className={styles.dropdownMenuItem}
+                      onClick={() => {
+                        setIsAvatarMenuOpen(false);
+                        onBackToMarketing();
+                      }}
+                      id="btn-member-marketing"
+                      role="menuitem"
+                    >
+                      <House size={16} aria-hidden="true" />
+                      <span>Marketing</span>
+                    </button>
+                  )}
+
+                  {user ? (
+                    <button
+                      type="button"
+                      className={`${styles.dropdownMenuItem} ${styles.dropdownMenuItemDanger}`}
+                      onClick={() => {
+                        setIsAvatarMenuOpen(false);
+                        logout();
+                      }}
+                      id="btn-member-sign-out"
+                      role="menuitem"
+                    >
+                      <LogOut size={16} aria-hidden="true" />
+                      <span>Sign Out</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.dropdownMenuItem}
+                      onClick={() => {
+                        setIsAvatarMenuOpen(false);
+                        router.push('/auth?mode=login');
+                      }}
+                      id="btn-member-sign-in"
+                      role="menuitem"
+                    >
+                      <ArrowRight size={16} aria-hidden="true" />
+                      <span>Sign In</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </header>
@@ -685,7 +1027,7 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
 
             <div className={styles.statusCardItem}>
               <span className={styles.statusLabel}>ATTENDANCE</span>
-              <span className={styles.statusValue}>{status.daysTrained} days this month</span>
+              <span className={styles.statusValue}>{attendanceDisplay}</span>
               <span className={styles.statusSubtext}>
                 Verified by daily code
               </span>
@@ -716,8 +1058,14 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               className={styles.primaryAction}
               onClick={() => handleActionClick('Check in')}
               id="btn-check-in"
+              disabled={isGeneratingCheckIn}
             >
-              <Check size={16} /> Check in
+              <Check size={16} />
+              {isGeneratingCheckIn
+                ? 'Generating code...'
+                : checkInStatus?.checkedInToday
+                  ? 'Checked In'
+                  : 'Check in'}
             </button>
             <button
               type="button"
@@ -746,6 +1094,68 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               {paymentHistory.length > 0 && ` (${paymentHistory.length})`}
             </button>
           </nav>
+
+          {(checkInCode || checkInStatus?.checkedInToday) && (
+            <section className={styles.checkInPanel} aria-label="Check-in status">
+              {checkInStatus?.checkedInToday ? (
+                <>
+                  <div className={styles.checkInPanelHeading}>
+                    <CircleCheck size={18} /> Checked in at {formatCheckInTime(checkInStatus.checkedInAt)}
+                  </div>
+                  <p className={styles.checkInPanelText}>
+                    This visit has been counted in your attendance.
+                  </p>
+                </>
+              ) : checkInCode ? (
+                <>
+                  <div className={styles.checkInPanelHeading}>Your one-tap check-in code</div>
+                  <div className={styles.checkInCodeValue} id="checkin-generated-code">
+                    {checkInCode.code}
+                  </div>
+                  <p className={styles.checkInPanelText}>
+                    Emailed to {checkInCode.emailedTo}. Valid until{' '}
+                    {formatCheckInTime(checkInCode.expiresAt)} Lagos time.
+                  </p>
+                  <div className={styles.checkInPanelActions}>
+                    <button
+                      type="button"
+                      className={styles.renewLinkBtn}
+                      onClick={() => setShowCheckInQr((previous) => !previous)}
+                      id="btn-toggle-checkin-qr"
+                    >
+                      {showCheckInQr ? 'Hide QR code' : 'Show QR code'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.renewLinkBtn}
+                      onClick={() => router.push(`/spotter/checkin?code=${checkInCode.code}`)}
+                      id="btn-open-checkin-simulator"
+                    >
+                      Open check-in simulator <ArrowRight size={13} />
+                    </button>
+                  </div>
+                  {showCheckInQr ? (
+                    <div className={styles.checkInQrBox}>
+                      {checkInQrDataUrl ? (
+                        <Image
+                          src={checkInQrDataUrl}
+                          alt="QR code for this check-in session"
+                          width={236}
+                          height={236}
+                          unoptimized
+                          className={styles.checkInQrImage}
+                          id="checkin-qr-code"
+                        />
+                      ) : (
+                        <span className={styles.checkInQrCaption}>Preparing QR code...</span>
+                      )}
+                      <span className={styles.checkInQrCaption}>Or scan at the desk</span>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </section>
+          )}
 
           {/* Payment Status Alerts */}
           {paymentStatusAlert && (
@@ -890,7 +1300,13 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
                   <X size={16} />
                 </button>
               </div>
-              <p className={styles.answerLine}>{activeCard.answer}</p>
+              <p
+                className={`${styles.answerLine} ${
+                  activeCard.source === 'gemini' ? styles.aiAnswerLine : ''
+                }`}
+              >
+                {activeCard.answer}
+              </p>
               <pre className={styles.recordSnippet}>{activeCard.record}</pre>
               <div className={styles.answerFooter}>
                 <span>{activeCard.confirmedDate}</span>
@@ -909,12 +1325,12 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
           <section className={styles.askSection} aria-label="Ask About The Gym">
             <h2 className={styles.sectionHeading}>Ask About The Gym</h2>
             <p className={styles.sectionSubtitle}>
-              Tapped questions skip model calls and verify against approved gym records.
+              Tapped questions open approved gym records. Custom questions are answered by Gemini AI.
             </p>
 
             {/* 3-Column Question Cards Grid */}
             <div className={styles.questionsGrid} role="group" aria-label="Approved Gym Questions">
-              {TARGET_QUICK_QUESTIONS.map((q, idx) => (
+              {TARGET_QUICK_QUESTIONS.slice(0, 3).map((q, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -927,22 +1343,75 @@ export default function MemberApp({ onBackToMarketing }: { onBackToMarketing?: (
               ))}
             </div>
 
+            {showMoreQuestions && (
+              <div
+                id="more-questions"
+                className={styles.questionsGrid}
+                role="group"
+                aria-label="More Approved Gym Questions"
+              >
+                {TARGET_QUICK_QUESTIONS.slice(3).map((q, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`${styles.questionCard} ${questionText === q ? styles.questionCardActive : ''}`}
+                    onClick={() => handleQuestionClick(q)}
+                    title={q}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={styles.moreQuestionsButton}
+              onClick={() => setShowMoreQuestions((visible) => !visible)}
+              aria-expanded={showMoreQuestions}
+              aria-controls="more-questions"
+            >
+              More questions
+              <ChevronDown
+                size={16}
+                className={`${styles.moreQuestionsIcon} ${showMoreQuestions ? styles.moreQuestionsIconOpen : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+
             {/* Text Input Row: Ask a Custom Question */}
             <form onSubmit={handleQuestionSubmit} className={styles.inputRow}>
               <input
                 type="text"
-                className={styles.textInput}
+                className={`${styles.textInput} ${hasNoPlan ? styles.textInputLocked : ''}`}
                 placeholder="Ask any question about the gym..."
                 value={questionText}
                 maxLength={300}
-                onChange={(e) => setQuestionText(e.target.value)}
+                onChange={handleQuestionChange}
+                onKeyDown={handleQuestionKeyDown}
+                onPaste={handleQuestionPaste}
+                readOnly={hasNoPlan}
+                disabled={isAskingGemini}
+                aria-readonly={hasNoPlan}
+                aria-describedby={subscriptionNotice ? 'subscription-notice' : undefined}
                 aria-label="Ask a question"
                 id="input-ask-question"
               />
-              <button type="submit" className={styles.submitBtn} id="btn-submit-question">
-                Ask
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                id="btn-submit-question"
+                disabled={hasNoPlan || isAskingGemini}
+                aria-busy={isAskingGemini}
+              >
+                {isAskingGemini ? 'Thinking...' : 'Ask'}
               </button>
             </form>
+            {subscriptionNotice && (
+              <p id="subscription-notice" role="alert" className={styles.subscriptionNotice}>
+                {subscriptionNotice}
+              </p>
+            )}
           </section>
 
           {/* Footer Area matching Target Design */}

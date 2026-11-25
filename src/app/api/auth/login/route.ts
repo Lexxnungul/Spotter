@@ -5,6 +5,7 @@ import { loginSchema, getZodErrorMessage } from '../../../../lib/validations/aut
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../../lib/rate-limit';
 import { isEmailVerified } from '../../../../lib/email-verification';
 import { createStaffToken, STAFF_COOKIE_NAME, VerifiedStaff } from '../../../../lib/staff-auth';
+import { setMemberSessionCookie } from '../../../../lib/member-auth';
 
 async function createStaffLoginResponse(staff: VerifiedStaff) {
   const token = await createStaffToken(staff);
@@ -198,7 +199,7 @@ export async function POST(req: NextRequest) {
 
           const verified = member.email ? await isEmailVerified(member.email) : false;
 
-          return NextResponse.json({
+          const response = NextResponse.json({
             success: true,
             user: {
               type: 'member',
@@ -219,6 +220,13 @@ export async function POST(req: NextRequest) {
                 isEmailVerified: verified,
               },
             },
+          });
+
+          return setMemberSessionCookie(response, {
+            id: member.id,
+            fullName: member.fullName,
+            email: member.email,
+            memberNumber: member.memberNumber,
           });
         }
       }
